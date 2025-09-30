@@ -1,5 +1,12 @@
+"use client"
+
 import { Suspense } from "react"
-import StudentOverviewContent from "@/components/StudentOverviewContent"
+import dynamic from "next/dynamic"
+
+const StudentOverviewContent = dynamic(() => import("@/components/StudentOverviewContent"), {
+  loading: () => <div>Loading...</div>,
+  ssr: false
+})
 
 export default function StudentOverviewPage() {
   return (
@@ -8,6 +15,3 @@ export default function StudentOverviewPage() {
     </Suspense>
   )
 }
-
-// Force dynamic rendering to prevent prerendering issues
-export const dynamic = 'force-dynamic'

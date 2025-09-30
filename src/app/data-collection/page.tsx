@@ -11,7 +11,8 @@ const DataCollectionPage = dynamic(() => import("@/components/DataCollectionPage
         <p className="text-gray-600">Loading Data Collection...</p>
       </div>
     </div>
-  )
+  ),
+  ssr: false
 })
 
 export default function DataCollection() {
@@ -28,6 +29,3 @@ export default function DataCollection() {
     </Suspense>
   )
 }
-
-// Force dynamic rendering to prevent prerendering issues
-export const dynamic = 'force-dynamic'

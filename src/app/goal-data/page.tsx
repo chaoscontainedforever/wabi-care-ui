@@ -1,5 +1,12 @@
+"use client"
+
 import { Suspense } from "react"
-import GoalDataContent from "@/components/GoalDataContent"
+import dynamic from "next/dynamic"
+
+const GoalDataContent = dynamic(() => import("@/components/GoalDataContent"), {
+  loading: () => <div>Loading...</div>,
+  ssr: false
+})
 
 export default function GoalDataPage() {
   return (
@@ -8,6 +15,3 @@ export default function GoalDataPage() {
     </Suspense>
   )
 }
-
-// Force dynamic rendering to prevent prerendering issues
-export const dynamic = 'force-dynamic'
