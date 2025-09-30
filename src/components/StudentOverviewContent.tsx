@@ -31,7 +31,6 @@ import {
   GraduationCap
 } from "@/components/icons"
 import { useStudents } from "@/hooks/useSupabase"
-import { RightNavigation } from "@/components/RightNavigation"
 import type { Tables } from "@/lib/database.types"
 
 function StudentOverviewContent() {
@@ -43,7 +42,6 @@ function StudentOverviewContent() {
   
   const [activeTab, setActiveTab] = useState("profile")
   const [searchTerm, setSearchTerm] = useState("")
-  const [isRightNavOpen, setIsRightNavOpen] = useState(false)
 
   // Get selected student
   const selectedStudent = useMemo(() => {
@@ -440,13 +438,6 @@ function StudentOverviewContent() {
           </div>
         </div>
       </SidebarInset>
-      
-      {/* Right Navigation Chat */}
-      <RightNavigation
-        isOpen={isRightNavOpen}
-        onToggle={() => setIsRightNavOpen(!isRightNavOpen)}
-        currentStudent={selectedStudent}
-      />
     </SidebarProvider>
   )
 }

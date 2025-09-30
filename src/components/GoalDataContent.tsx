@@ -32,7 +32,6 @@ import {
   Bookmark
 } from "@/components/icons"
 import { useStudents, useGoals } from "@/hooks/useSupabase"
-import { RightNavigation } from "@/components/RightNavigation"
 import type { Tables } from "@/lib/database.types"
 
 function GoalDataContent() {
@@ -52,7 +51,6 @@ function GoalDataContent() {
   const [notes, setNotes] = useState("")
   const [accommodations, setAccommodations] = useState("Accommodations")
   const [servicesTracked, setServicesTracked] = useState("Services Not Tracked")
-  const [isRightNavOpen, setIsRightNavOpen] = useState(false)
 
   // Get selected student
   const selectedStudent = useMemo(() => {
@@ -492,13 +490,6 @@ function GoalDataContent() {
         </div>
       </SidebarInset>
       
-      {/* Right Navigation Chat */}
-      <RightNavigation
-        isOpen={isRightNavOpen}
-        onToggle={() => setIsRightNavOpen(!isRightNavOpen)}
-        currentStudent={selectedStudent}
-        currentGoal={selectedGoal}
-      />
     </SidebarProvider>
   )
 }
