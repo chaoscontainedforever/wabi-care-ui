@@ -1184,7 +1184,7 @@ function DataCollectionContent({ preselectedStudentId }: DataCollectionContentPr
                   </div>
                 ) : uploads.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    No documents uploaded yet. Use the "Upload Session Data" button to upload Excel files.
+                    No documents uploaded yet. Use the &quot;Upload Session Data&quot; button to upload Excel files.
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -1677,7 +1677,7 @@ function DataCollectionContent({ preselectedStudentId }: DataCollectionContentPr
                                 </TabsList>
                                 <TabsContent value="collect" className="space-y-4">
                               <div>
-                                    <Label className="text-sm font-medium mb-2 block">Today's Performance</Label>
+                                    <Label className="text-sm font-medium mb-2 block">Today&apos;s Performance</Label>
                                     <div className="flex gap-2">
                                   <Button 
                                     size="sm" 

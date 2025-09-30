@@ -1493,7 +1493,7 @@ export function IEPBuilderContent() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Present Levels of Academic Achievement and Functional Performance (PLAAFP)</CardTitle>
-                  <CardDescription>Describe the student's current academic and functional performance levels</CardDescription>
+                  <CardDescription>Describe the student&apos;s current academic and functional performance levels</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-4">
@@ -1588,7 +1588,7 @@ export function IEPBuilderContent() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Special Factors</CardTitle>
-                  <CardDescription>Consider special factors that may affect the student's education</CardDescription>
+                  <CardDescription>Consider special factors that may affect the student&apos;s education</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1676,7 +1676,7 @@ export function IEPBuilderContent() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">AI-Powered Goal Recommendations</CardTitle>
-                  <CardDescription>Get intelligent goal suggestions based on {selectedStudent.name}'s profile and assessment data</CardDescription>
+                  <CardDescription>Get intelligent goal suggestions based on {selectedStudent.name}&apos;s profile and assessment data</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg mb-4">
@@ -2057,7 +2057,7 @@ export function IEPBuilderContent() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">IEP Review and Finalization</CardTitle>
-                  <CardDescription>Review all sections before finalizing {selectedStudent.name}'s IEP</CardDescription>
+                  <CardDescription>Review all sections before finalizing {selectedStudent.name}&apos;s IEP</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Student Information Summary */}
