@@ -3,18 +3,15 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
+import LoginPage from "./login/page"
 
 export default function HomePage() {
   const { user, loading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!loading) {
-      if (user) {
-        router.push("/dashboard")
-      } else {
-        router.push("/login")
-      }
+    if (!loading && user) {
+      router.push("/dashboard")
     }
   }, [user, loading, router])
 
@@ -29,5 +26,7 @@ export default function HomePage() {
     )
   }
 
-  return null
+  // If user is logged in, they'll be redirected to dashboard
+  // If not logged in, show the login page directly
+  return <LoginPage />
 }
