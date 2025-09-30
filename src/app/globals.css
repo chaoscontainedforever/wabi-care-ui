@@ -25,6 +25,16 @@
   --input: 0 0% 100%; /* Keep inputs white */
   --ring: 0 0% 3.9%;
   --radius: 0.5rem;
+  
+  /* Sidebar colors to match cards */
+  --sidebar-background: 0 0% 100%; /* White background like cards */
+  --sidebar-foreground: 0 0% 3.9%; /* Same as card foreground */
+  --sidebar-primary: 0 0% 9%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 0 0% 94%;
+  --sidebar-accent-foreground: 0 0% 9%;
+  --sidebar-border: 0 0% 89.8%; /* Same as card border */
+  --sidebar-ring: 0 0% 3.9%;
 }
 
 /* Consistent light theme - no dark mode to avoid half light/half dark issues */
