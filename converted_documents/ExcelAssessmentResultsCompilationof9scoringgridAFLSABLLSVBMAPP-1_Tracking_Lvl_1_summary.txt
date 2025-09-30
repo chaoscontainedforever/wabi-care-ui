@@ -1,0 +1,40 @@
+Sheet: Tracking Lvl 1
+Rows: 62
+Columns: 21
+Column names: ['Unnamed: 0', 'Unnamed: 1', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4', 'Unnamed: 5', 'Unnamed: 6', 'Unnamed: 7', 'Unnamed: 8', 'Unnamed: 9', 'Unnamed: 10', 'Unnamed: 11', 'Unnamed: 12', 'Unnamed: 13', 'Unnamed: 14', 'Unnamed: 15', 'Unnamed: 16', 'Unnamed: 17', 'Unnamed: 18', 'Unnamed: 19', 'Unnamed: 20']
+
+First 10 rows:
+        Unnamed: 0  Unnamed: 1 Unnamed: 2  Unnamed: 3 Unnamed: 4  Unnamed: 5 Unnamed: 6  Unnamed: 7 Unnamed: 8  Unnamed: 9 Unnamed: 10  Unnamed: 11  Unnamed: 12  Unnamed: 13 Unnamed: 14  Unnamed: 15       Unnamed: 16  Unnamed: 17       Unnamed: 18  Unnamed: 19       Unnamed: 20
+0              NaN         NaN        NaN         NaN        NaN         NaN        NaN         NaN        NaN         NaN         NaN          NaN         Key:          NaN       Score          NaN              Date          NaN             Color          NaN            Tester
+1    Child's name:         NaN        NaN         NaN        NaN         NaN        NaN         NaN        NaN         NaN         NaN          NaN   1st test:           NaN         NaN          NaN               NaN          NaN               NaN          NaN               NaN
+2   Date of birth:         NaN        NaN         NaN        NaN         NaN        NaN         NaN        NaN         NaN         NaN          NaN    2nd test:          NaN         NaN          NaN               NaN          NaN               NaN          NaN               NaN
+3  Age at testing:         NaN        NaN         1.0        NaN         2.0        NaN         3.0        NaN         4.0         NaN          NaN  3rd test:            NaN         NaN          NaN                            NaN                            NaN                  
+4              NaN         NaN        NaN         NaN        NaN         NaN        NaN         NaN        NaN         NaN         NaN          NaN  4th test:            NaN         NaN          NaN                            NaN                            NaN                  
+5              NaN         NaN        NaN         NaN        NaN         NaN        NaN         NaN        NaN         NaN         NaN          NaN          NaN          NaN         NaN          NaN               NaN          NaN               NaN          NaN               NaN
+6             Mand         NaN       Tact         NaN   Listener         NaN     VP_MTS         NaN       Play         NaN      Social          NaN    Imitation          NaN      Echoic          NaN             Vocal          NaN               NaN          NaN               NaN
+7              NaN         NaN        NaN         NaN        NaN         NaN        NaN         NaN        NaN         NaN         NaN          NaN          NaN          NaN         NaN          NaN               NaN          NaN               NaN          NaN               NaN
+8              5-M         NaN        5-M         NaN        5-M         NaN        5-M         NaN        5-M         NaN         5-M          NaN          5-M          NaN         5-M          NaN               5-M          NaN               NaN          NaN               NaN
+9              5-e         NaN        5-c         NaN        5-e         NaN        5-e         NaN        5-f         NaN         5-c          NaN          5-d          NaN         NaN          NaN               NaN          NaN               NaN          NaN               NaN
+
+Data types:
+Unnamed: 0      object
+Unnamed: 1     float64
+Unnamed: 2      object
+Unnamed: 3     float64
+Unnamed: 4      object
+Unnamed: 5     float64
+Unnamed: 6      object
+Unnamed: 7     float64
+Unnamed: 8      object
+Unnamed: 9     float64
+Unnamed: 10     object
+Unnamed: 11    float64
+Unnamed: 12     object
+Unnamed: 13    float64
+Unnamed: 14     object
+Unnamed: 15    float64
+Unnamed: 16     object
+Unnamed: 17    float64
+Unnamed: 18     object
+Unnamed: 19    float64
+Unnamed: 20     object

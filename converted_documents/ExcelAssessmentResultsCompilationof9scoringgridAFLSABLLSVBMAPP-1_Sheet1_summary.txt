@@ -1,0 +1,24 @@
+Sheet: Sheet1
+Rows: 30
+Columns: 5
+Column names: ['Domain', 'Unnamed: 1', 'Raw Score', 'Total Points Available', '% Mastery']
+
+First 10 rows:
+  Domain                              Unnamed: 1  Raw Score  Total Points Available  % Mastery
+0      A  Cooperation & Reinforcer Effectiveness        NaN                      52          0
+1      B                      Visual Performance        NaN                      96          0
+2      C                      Receptive Language        NaN                     182          0
+3      D                               Imitation        NaN                      80          0
+4      E                         Vocal Imitation        NaN                      56          0
+5      F                          Requests/Mands        NaN                      76          0
+6      G                          Labeling/Tacts        NaN                     154          0
+7      H                            Intraverbals        NaN                     180          0
+8      I               Spontaneous Vocalizations        NaN                      28          0
+9      J                        Syntax & Grammar        NaN                      44          0
+
+Data types:
+Domain                     object
+Unnamed: 1                 object
+Raw Score                 float64
+Total Points Available      int64
+% Mastery                   int64
