@@ -17,7 +17,8 @@ import {
   ChevronDown,
   ChevronRight,
   Menu,
-  LogOut
+  LogOut,
+  User
 } from "lucide-react"
 
 import {
@@ -30,6 +31,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 // Wabi Care navigation data for special education platform
 const navigationData = {
@@ -227,6 +229,38 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+
+      {/* User Profile Section */}
+      {user && (
+        <SidebarGroup>
+          <div className="px-2 py-3 border-b border-sidebar-border">
+            <div className={`flex items-center ${state === "expanded" ? "gap-3" : "justify-center"}`}>
+              <Avatar className="h-8 w-8">
+                <AvatarImage 
+                  src={user.user_metadata?.avatar_url || user.user_metadata?.picture} 
+                  alt={user.user_metadata?.full_name || user.email || "User"}
+                />
+                <AvatarFallback className="bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs">
+                  {user.user_metadata?.full_name 
+                    ? user.user_metadata.full_name.split(' ').map(n => n[0]).join('')
+                    : user.email?.[0]?.toUpperCase() || 'U'
+                  }
+                </AvatarFallback>
+              </Avatar>
+              {state === "expanded" && (
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="text-sm font-medium text-foreground truncate">
+                    {user.user_metadata?.full_name || user.email?.split('@')[0] || "User"}
+                  </span>
+                  <span className="text-xs text-muted-foreground truncate">
+                    Teacher
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </SidebarGroup>
+      )}
       
       <SidebarContent className={`${state === "expanded" ? "px-2" : "px-2"}`}>
         {/* Platform Section */}
