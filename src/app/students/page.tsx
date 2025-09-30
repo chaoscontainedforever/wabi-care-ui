@@ -9,3 +9,6 @@ const AllStudentsPage = dynamic(() => import("@/components/AllStudentsPage").the
 export default function Students() {
   return <AllStudentsPage />
 }
+
+// Force dynamic rendering to prevent prerendering issues
+export const dynamic = 'force-dynamic'

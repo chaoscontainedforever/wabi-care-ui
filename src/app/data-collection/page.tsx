@@ -28,3 +28,6 @@ export default function DataCollection() {
     </Suspense>
   )
 }
+
+// Force dynamic rendering to prevent prerendering issues
+export const dynamic = 'force-dynamic'

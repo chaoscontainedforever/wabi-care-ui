@@ -8,3 +8,6 @@ export default function StudentOverviewPage() {
     </Suspense>
   )
 }
+
+// Force dynamic rendering to prevent prerendering issues
+export const dynamic = 'force-dynamic'
