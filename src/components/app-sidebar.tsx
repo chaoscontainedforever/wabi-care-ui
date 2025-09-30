@@ -229,6 +229,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+
+      {/* Separator line between logo and navigation */}
+      <div className="px-2">
+        <div className="h-px bg-sidebar-border"></div>
+      </div>
       
       <SidebarContent className={`${state === "expanded" ? "px-2" : "px-2"}`}>
         {/* Platform Section */}
