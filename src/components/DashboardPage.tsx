@@ -1,9 +1,7 @@
 "use client"
 
-import { useState } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import DashboardContent from "@/components/DashboardContent"
-import { RightNavigation } from "@/components/RightNavigation"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -20,8 +18,6 @@ import {
 } from "@/components/ui/sidebar"
 
 export function DashboardPage() {
-  const [isRightNavOpen, setIsRightNavOpen] = useState(false)
-
   return (
     <SidebarProvider
       defaultOpen={true}
@@ -55,12 +51,6 @@ export function DashboardPage() {
           <DashboardContent />
         </div>
       </SidebarInset>
-      
-      {/* Right Navigation Chat */}
-      <RightNavigation
-        isOpen={isRightNavOpen}
-        onToggle={() => setIsRightNavOpen(!isRightNavOpen)}
-      />
     </SidebarProvider>
   )
 }
