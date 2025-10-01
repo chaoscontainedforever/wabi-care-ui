@@ -375,8 +375,6 @@ export function IEPGoalsContent() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Goal Bank</h1>
-          <p className="text-muted-foreground">Create and manage a library of IEP goals for BCBAs and teachers to use in IEP building</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">

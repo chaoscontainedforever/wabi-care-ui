@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
 import ThemeProvider from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ChatAssistantProvider } from "@/components/ChatAssistantProvider";
+import LayoutContent from "@/components/LayoutContent";
 import "./globals.css";
 
 const roboto = Roboto({
@@ -25,7 +27,11 @@ export default function RootLayout({
       <body className={`${roboto.variable} font-material antialiased`} suppressHydrationWarning>
         <AuthProvider>
           <ThemeProvider>
-            {children}
+            <ChatAssistantProvider>
+              <LayoutContent>
+                {children}
+              </LayoutContent>
+            </ChatAssistantProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>

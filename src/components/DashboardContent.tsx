@@ -12,7 +12,6 @@ import {
   FileText,
   BarChart3,
   Calendar,
-  Plus,
   ArrowUpRight,
   ArrowDownRight
 } from "lucide-react"
@@ -152,24 +151,6 @@ function DashboardContent() {
 
   return (
     <div className="flex-1 p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back! Here&apos;s what&apos;s happening with your students.</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">
-            <Calendar className="h-4 w-4 mr-2" />
-            Calendar
-          </Button>
-          <Button size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            New Assessment
-          </Button>
-        </div>
-      </div>
-
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => {
@@ -210,7 +191,6 @@ function DashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Recent Students</CardTitle>
-                <CardDescription>Latest student activity and progress</CardDescription>
               </div>
               <Button size="sm">
                 View All
@@ -259,7 +239,6 @@ function DashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Upcoming Tasks</CardTitle>
-                <CardDescription>Your schedule for the next few days</CardDescription>
               </div>
               <Button size="sm">
                 View All

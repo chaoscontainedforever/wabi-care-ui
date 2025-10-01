@@ -42,20 +42,22 @@ const navigationData = {
       icon: Home,
     },
     {
-      title: "Data Collection",
+      title: "Students",
       url: "/students",
       icon: Users,
       items: [
+        { title: "Student Intake", url: "/students/new" },
         { title: "All Students", url: "/students" },
-        { title: "Goal Data", url: "/goal-data" },
-        { title: "Student Groups", url: "/students/groups" },
+        { title: "Student Overview", url: "/student-overview" },
       ],
     },
     {
-      title: "Assessments",
+      title: "Data Collection",
       url: "/assessments",
       icon: ClipboardList,
       items: [
+        { title: "Goal Data", url: "/goal-data" },
+        { title: "Goal Bank", url: "/iep-goals" },
         { title: "Form Bank", url: "/form-bank" },
       ],
     },
@@ -64,10 +66,7 @@ const navigationData = {
       url: "/iep",
       icon: Target,
       items: [
-        { title: "Goal Bank", url: "/iep-goals" },
-        { title: "IEP Builder", url: "/iep-builder" },
         { title: "IEP Review", url: "/iep-review" },
-        { title: "Progress Tracking", url: "/iep/progress" },
       ],
     },
   ],
@@ -406,40 +405,50 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {user && (
           <SidebarGroup className="mt-auto">
             <SidebarMenu>
+              {/* User Profile with Logout Icon */}
               <SidebarMenuItem>
-                <SidebarMenuButton 
-                  onClick={async () => {
-                    await signOut()
-                    router.push("/login")
-                  }}
-                  className="w-full px-3 py-2 hover:bg-sidebar-accent"
-                >
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage 
-                      src={user.user_metadata?.avatar_url || user.user_metadata?.picture} 
-                      alt={user.user_metadata?.full_name || user.email || "User"}
-                    />
-                    <AvatarFallback className="bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs">
-                      {user.user_metadata?.full_name 
-                        ? user.user_metadata.full_name.split(' ').map(n => n[0]).join('')
-                        : user.email?.[0]?.toUpperCase() || 'U'
-                      }
-                    </AvatarFallback>
-                  </Avatar>
-                  {state === "expanded" && (
-                    <div className="flex flex-col min-w-0 flex-1 text-left">
-                      <span className="text-sm font-medium text-foreground truncate">
-                        {user.user_metadata?.full_name || user.email?.split('@')[0] || "User"}
-                      </span>
-                      <span className="text-xs text-muted-foreground truncate">
-                        Teacher
-                      </span>
-                    </div>
-                  )}
-                  {state === "expanded" && (
-                    <LogOut className="size-4 text-muted-foreground" />
-                  )}
-                </SidebarMenuButton>
+                <div className={`flex items-center ${state === "expanded" ? "gap-3 px-3 py-2" : "flex-col py-2"}`}>
+                  {/* Profile Section - Clickable */}
+                  <div 
+                    className={`flex items-center cursor-pointer hover:bg-sidebar-accent rounded-md transition-colors ${state === "expanded" ? "flex-1 gap-3" : "justify-center"}`}
+                    onClick={() => handleNavigation("/profile")}
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage 
+                        src={user.user_metadata?.avatar_url || user.user_metadata?.picture} 
+                        alt={user.user_metadata?.full_name || user.email || "User"}
+                      />
+                      <AvatarFallback className="bg-gradient-to-r from-pink-500 to-purple-600 text-white text-sm font-medium">
+                        {user.user_metadata?.full_name 
+                          ? user.user_metadata.full_name.split(' ').map(n => n[0]).join('')
+                          : user.email?.[0]?.toUpperCase() || 'U'
+                        }
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    {state === "expanded" && (
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {user.user_metadata?.full_name || user.email?.split('@')[0] || "User"}
+                        </span>
+                        <span className="text-xs text-muted-foreground truncate">
+                          Teacher
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Logout Icon */}
+                  <SidebarMenuButton 
+                    onClick={async () => {
+                      await signOut()
+                      router.push("/login")
+                    }}
+                    className={`h-8 w-8 p-0 hover:bg-sidebar-accent ${state === "expanded" ? "" : "mx-auto"}`}
+                  >
+                    <LogOut className="size-4 flex-shrink-0" />
+                  </SidebarMenuButton>
+                </div>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroup>

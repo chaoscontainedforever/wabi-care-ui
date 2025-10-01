@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { DashboardSidebar } from "@/components/DashboardSidebar"
-import { DashboardContent } from "@/components/DashboardContent"
+import DashboardContent from "@/components/DashboardContent"
 
 export function ClientDashboard() {
   const [isMounted, setIsMounted] = useState(false)

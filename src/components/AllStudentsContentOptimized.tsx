@@ -586,7 +586,7 @@ function AllStudentsContent() {
               <p className="text-gray-600 mb-6">No students match your current search and filter criteria.</p>
               <Button onClick={handlers.onAddStudent}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add New Student
+                Add Student Intake
               </Button>
             </div>
           )}

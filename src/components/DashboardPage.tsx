@@ -1,56 +1,14 @@
 "use client"
 
-import { AppSidebar } from "@/components/app-sidebar"
 import DashboardContent from "@/components/DashboardContent"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
+import { PageLayout } from "@/components/PageLayout"
 
 export function DashboardPage() {
   return (
-    <SidebarProvider
-      defaultOpen={true}
-      style={
-        {
-          "--sidebar-width": "19rem",
-          "--sidebar-width-icon": "3rem",
-        } as React.CSSProperties
-      }
+    <PageLayout 
+      breadcrumbs={[{ label: "Dashboard" }]}
     >
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 px-4">
-          <SidebarTrigger />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/dashboard">
-                  Wabi Care
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Dashboard</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <DashboardContent />
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+      <DashboardContent />
+    </PageLayout>
   )
 }

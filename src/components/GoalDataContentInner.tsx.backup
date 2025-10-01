@@ -1,0 +1,272 @@
+"use client"
+
+import { useState, useMemo, useCallback } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { 
+  Search, 
+  Plus, 
+  MoreHorizontal,
+  ChevronRight,
+  CheckCircle,
+  Bookmark,
+  ArrowLeft,
+  Calendar,
+  Clock
+} from "@/components/icons"
+import { useStudents } from "@/hooks/useSupabase"
+
+function GoalDataContentInner() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const selectedStudentId = searchParams.get('student')
+  
+  const { students, loading: studentsLoading } = useStudents()
+  
+  const [searchTerm, setSearchTerm] = useState("")
+  const [localSelectedStudentId, setLocalSelectedStudentId] = useState<string | null>(selectedStudentId)
+
+  const handleStudentChange = useCallback((studentId: string) => {
+    setLocalSelectedStudentId(studentId)
+    const newUrl = new URL(window.location.href)
+    newUrl.searchParams.set('student', studentId)
+    router.push(newUrl.pathname + newUrl.search)
+  }, [router])
+
+  const handleAddStudent = useCallback(() => {
+    router.push('/students/new')
+  }, [router])
+
+  const selectedStudent = useMemo(() => {
+    return students.find(s => s.id === localSelectedStudentId)
+  }, [students, localSelectedStudentId])
+
+  // Mock goals data for now
+  const mockGoals = [
+    {
+      id: '1',
+      title: 'Social Studies',
+      description: 'Demo Student1 will take 5 bites, from a handheld snack, such as a cheese stick in 4 out of 5 opportunities.',
+      domain: 'Social Studies',
+      level: 'Level 3',
+      target_percentage: 80,
+      current_progress: 0,
+      status: 'completed'
+    },
+    {
+      id: '2',
+      title: 'Writing',
+      description: 'Demo Student1 will write his name legibly with all letters in the correct spatial order and distance with...',
+      domain: 'Writing',
+      level: 'Level 2',
+      target_percentage: 75,
+      current_progress: 0,
+      status: 'pending'
+    },
+    {
+      id: '3',
+      title: 'Math',
+      description: 'Demo Student1 will be at 70% proficiency at the 1st-grade level as measured by the...',
+      domain: 'Math',
+      level: 'Level 1',
+      target_percentage: 70,
+      current_progress: 0,
+      status: 'pending'
+    }
+  ]
+
+  const filteredGoals = useMemo(() => {
+    return mockGoals.filter(goal => 
+      goal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      goal.description.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  }, [searchTerm])
+
+  if (studentsLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Top Ribbon */}
+      <div className="flex items-center justify-between bg-white p-4 rounded-lg border">
+        <div className="flex items-center space-x-4">
+          <Button variant="ghost" size="sm" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+            <Calendar className="h-4 w-4" />
+            <span>Sep 29, 11:05 PM - 11:35 PM</span>
+            <Clock className="h-4 w-4" />
+          </div>
+        </div>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span className="text-sm">Accommodations</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+            <span className="text-sm">Services Not Tracked</span>
+          </div>
+          <Button variant="ghost" size="sm">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6 h-[calc(100vh-280px)]">
+        {/* Left Panel - Student Selection and Goals */}
+        <div className="space-y-6">
+          {/* Student Selection Card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Select a student to view their goal data</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-3">
+                {selectedStudent ? (
+                  <div className="flex items-center space-x-3 flex-1">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={selectedStudent.profile_picture_url || ""} />
+                      <AvatarFallback>{selectedStudent.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <p className="font-medium">{selectedStudent.name}</p>
+                    </div>
+                    <Button variant="ghost" size="sm">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Select value={localSelectedStudentId || ""} onValueChange={handleStudentChange}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select a student..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {students.map((student) => (
+                        <SelectItem key={student.id} value={student.id}>
+                          <div className="flex items-center space-x-2">
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={student.profile_picture_url || ""} />
+                              <AvatarFallback>{student.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <span>{student.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <Button onClick={handleAddStudent} size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Student
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Goals List Card */}
+          <Card className="flex-1">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">Goals ({mockGoals.length}/{mockGoals.length})</CardTitle>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button variant="ghost" size="sm">
+                    <Search className="h-4 w-4" />
+                  </Button>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Goal
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="p-4 border-b">
+                <Input
+                  placeholder="Search goals..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="max-h-[400px] overflow-y-auto">
+                {filteredGoals.map((goal) => (
+                  <div
+                    key={goal.id}
+                    className="p-4 border-b last:border-b-0 hover:bg-muted/50 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0 mt-1">
+                        {goal.status === 'completed' ? (
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                        ) : (
+                          <div className="h-5 w-5 rounded-full border-2 border-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h4 className="font-medium text-xs">{goal.title}</h4>
+                          <Badge variant="secondary" className="text-xs">
+                            {goal.domain}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                          {goal.description}
+                        </p>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Level: {goal.level}</span>
+                          <span>Target: {goal.target_percentage}%</span>
+                          <span>Current: {goal.current_progress}%</span>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
+                    </div>
+                  </div>
+                ))}
+                {filteredGoals.length === 0 && (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <p>No goals found</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Panel - Data Collection Area */}
+        <div className="flex-1">
+          <Card className="h-full">
+            <CardContent className="p-12 text-center h-full flex flex-col justify-center">
+              <Bookmark className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Select a Goal</h3>
+              <p className="text-gray-600">Choose a goal from the sidebar to start data collection.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default GoalDataContentInner

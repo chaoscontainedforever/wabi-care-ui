@@ -15,7 +15,9 @@ export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [isSignUp, setIsSignUp] = useState(false)
@@ -38,12 +40,31 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
+        // Validate password confirmation
+        if (password !== confirmPassword) {
+          throw new Error("Passwords do not match")
+        }
+        
+        // Validate password strength
+        if (password.length < 6) {
+          throw new Error("Password must be at least 6 characters long")
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: undefined, // Disable email verification
+          }
         })
         if (error) throw error
-        setError("Check your email for the confirmation link!")
+        
+        // Clear form and show success message
+        setEmail("")
+        setPassword("")
+        setConfirmPassword("")
+        setError("Account created successfully! You can now sign in.")
+        setIsSignUp(false) // Switch back to login mode
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -75,6 +96,14 @@ export default function LoginPage() {
       setError(error.message)
       setLoading(false)
     }
+  }
+
+  const toggleSignUpMode = () => {
+    setIsSignUp(!isSignUp)
+    setError("")
+    setEmail("")
+    setPassword("")
+    setConfirmPassword("")
   }
 
   return (
@@ -189,6 +218,37 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm your password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="pl-10 pr-10"
+                    required={isSignUp}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <Button
               type="submit"
               disabled={loading}
@@ -201,7 +261,7 @@ export default function LoginPage() {
           <div className="text-center">
             <Button
               variant="link"
-              onClick={() => setIsSignUp(!isSignUp)}
+              onClick={toggleSignUpMode}
               className="text-sm"
             >
               {isSignUp 

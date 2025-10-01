@@ -51,5 +51,17 @@ export {
   Bot,
   Sparkles,
   ClipboardList,
-  Paperclip
+  Paperclip,
+  Star,
+  Save,
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  ListOrdered,
+  Link,
+  Code,
+  AlignLeft,
+  AlignCenter,
+  AlignRight
 } from "lucide-react"

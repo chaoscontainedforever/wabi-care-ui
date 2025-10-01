@@ -1,6 +1,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import { StudentService, TeacherService, GoalService, SessionService, AssessmentService, VBMapMilestoneService, DocumentService } from '@/lib/services'
-import type { Student, Teacher, IEPGoal, Session, SessionDataPoint, AFLSAssessment, VBMapMilestone, DocumentUpload } from '@/lib/database.types'
+import type { Database, Tables } from '@/lib/database.types'
+
+// Type aliases for easier use
+type Student = Tables<'students'>
+type Teacher = Tables<'teachers'>
+type IEPGoal = Tables<'iep_goals'>
+type Session = Tables<'data_collection_sessions'>
+type SessionDataPoint = Tables<'session_data_points'>
+type AFLSAssessment = Tables<'afls_assessments'>
+type VBMapMilestone = Tables<'vb_mapp_milestones'>
+type DocumentUpload = Tables<'document_uploads'>
 
 // Custom hook for students
 export function useStudents() {

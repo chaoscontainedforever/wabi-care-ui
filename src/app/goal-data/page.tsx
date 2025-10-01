@@ -1,12 +1,7 @@
 "use client"
 
 import { Suspense } from "react"
-import dynamic from "next/dynamic"
-
-const GoalDataContent = dynamic(() => import("@/components/GoalDataContent"), {
-  loading: () => <div>Loading...</div>,
-  ssr: false
-})
+import GoalDataContent from "@/components/GoalDataContent"
 
 export default function GoalDataPage() {
   return (
