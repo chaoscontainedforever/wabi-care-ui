@@ -1,3 +1,6 @@
+# Phase 1 — Core + Copilots (MVP)
+
+```mermaid
 flowchart LR
   %% USERS
   subgraph U["Users"]
@@ -9,20 +12,20 @@ flowchart LR
 
   %% APP & BACKEND
   subgraph APP["App Layer (Next.js PWA)"]
-    UI[Web/Mobile UI\nNext.js + Tailwind + shadcn]
+    UI[Web/Mobile UI - Next.js + Tailwind + shadcn]
   end
   subgraph BE["Backend"]
     API[API Routes / Node]
-    AUTH[AuthN/RBAC\nNextAuth / Entra ID]
+    AUTH[AuthN / RBAC - NextAuth / Entra ID]
   end
   UI --> API
   API --> AUTH
 
   %% DATA
   subgraph DATA["Data Layer"]
-    SQL[(Azure SQL/Postgres)]
-    BLOB[(Azure Blob Storage\n(audio, docs, PDFs))]
-    IDXB[(IndexedDB\noffline cache)]
+    SQL[[Azure SQL / Postgres]]
+    BLOB[[Azure Blob Storage - audio, docs, PDFs]]
+    IDXB[[IndexedDB - offline cache]]
   end
   API --> SQL
   API --> BLOB
@@ -30,30 +33,27 @@ flowchart LR
 
   %% AI SERVICES (single-agent copilots)
   subgraph AI["AI Services"]
-    OAI[Azure OpenAI\n(Note Copilot)]
-    STT[Azure Speech-to-Text]
-    FR[Form Recognizer\n(OCR)]
+    OAI[[Azure OpenAI - Note Copilot]]
+    STT[[Azure Speech to Text]]
+    FR[[Form Recognizer - OCR]]
   end
   BLOB --> STT
   API --> STT
   API --> OAI
   API --> FR
 
-  %% ANALYTICS & SEC
+  %% ANALYTICS & SECURITY
   subgraph OPS["Analytics & Security"]
-    PBI[Power BI Embedded]
-    KV[Key Vault]
-    APPINS[App Insights]
+    PBI[[Power BI Embedded]]
+    KV[[Key Vault]]
+    APPINS[[App Insights]]
   end
   SQL --> PBI
   API -. secrets .-> KV
   API -. telemetry .-> APPINS
 
-  %% USERS -> UI
+  %% USERS
   Admin --- UI
   BCBA --- UI
   RBT --- UI
   Parent --- UI
-
-  %% NOTES
-  %% Copilot scope: Voice -> Transcript -> Note Draft (human review)
