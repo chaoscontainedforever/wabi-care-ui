@@ -15,7 +15,7 @@ flowchart TD
 
   subgraph AI Services
     GPT4[Azure OpenAI GPT-4]
-    Speech[Azure Speech (optional)]
+    Speech[Azure Speech optional]
   end
 
   CopilotButton --> CopilotAPI
