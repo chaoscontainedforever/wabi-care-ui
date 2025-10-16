@@ -40,8 +40,10 @@ import {
   Square,
   ChevronLeft,
   ChevronRight as ChevronRightIcon,
-  Undo,
+  ChevronDown,
   Minus,
+  Undo,
+  Redo,
   Bold,
   Italic,
   Underline,
@@ -70,7 +72,7 @@ function GoalDataContentInner() {
   const [selectedDataType, setSelectedDataType] = useState("prompting-levels")
   const [goalTitle, setGoalTitle] = useState("")
   const [goalDescription, setGoalDescription] = useState("")
-  const [prompts, setPrompts] = useState(["Independent", "1-2 Prompts", "More than 2 Prompts", "No response"])
+  const [promptOptions, setPromptOptions] = useState(["Independent", "1-2 Prompts", "More than 2 Prompts", "No response"])
   const [enableOutcomeTracking, setEnableOutcomeTracking] = useState(true)
   
   // Notes and voice recording state
@@ -81,6 +83,13 @@ function GoalDataContentInner() {
   const [transcribedText, setTranscribedText] = useState("")
   const [showTranscriptionReview, setShowTranscriptionReview] = useState(false)
   const [notesCount, setNotesCount] = useState(1)
+  
+  // Interactive metrics collection state
+  const [attemptCount, setAttemptCount] = useState<number>(0)
+  const [promptCount, setPromptCount] = useState<number>(0)
+  const [correctCount, setCorrectCount] = useState<number>(0)
+  const [incorrectCount, setIncorrectCount] = useState<number>(0)
+  const [cueCount, setCueCount] = useState<number>(0)
   
   // Graph data state
   const [graphData, setGraphData] = useState([
@@ -116,22 +125,75 @@ function GoalDataContentInner() {
   }, [router])
 
   const handleAddPrompt = useCallback(() => {
-    setPrompts(prev => [...prev, `Option ${prev.length + 1}`])
+    setPromptOptions(prev => [...prev, `Option ${prev.length + 1}`])
   }, [])
 
   const handleRemovePrompt = useCallback((index: number) => {
-    setPrompts(prev => prev.filter((_, i) => i !== index))
+    setPromptOptions(prev => prev.filter((_, i) => i !== index))
   }, [])
 
   const handleUpdatePrompt = useCallback((index: number, value: string) => {
-    setPrompts(prev => prev.map((prompt, i) => i === index ? value : prompt))
+    setPromptOptions(prev => prev.map((prompt, i) => i === index ? value : prompt))
   }, [])
 
   const handleSaveGoal = useCallback(() => {
     // TODO: Implement goal saving logic
-    console.log("Saving goal:", { goalTitle, goalDescription, selectedDataType, prompts, enableOutcomeTracking })
+    console.log("Saving goal:", { goalTitle, goalDescription, selectedDataType, promptOptions, enableOutcomeTracking })
     setIsGoalModalOpen(false)
-  }, [goalTitle, goalDescription, selectedDataType, prompts, enableOutcomeTracking])
+  }, [goalTitle, goalDescription, selectedDataType, promptOptions, enableOutcomeTracking])
+
+  // Interactive metrics collection handlers
+  const handleIncrementAttempt = useCallback(() => {
+    setAttemptCount(prev => prev + 1)
+  }, [])
+
+  const handleDecrementAttempt = useCallback(() => {
+    setAttemptCount(prev => Math.max(0, prev - 1))
+  }, [])
+
+  const handleIncrementPrompt = useCallback(() => {
+    setPromptCount(prev => prev + 1)
+  }, [])
+
+  const handleDecrementPrompt = useCallback(() => {
+    setPromptCount(prev => Math.max(0, prev - 1))
+  }, [])
+
+  const handleRecordCorrect = useCallback(() => {
+    setCorrectCount(prev => prev + 1)
+    setAttemptCount(prev => prev + 1)
+  }, [])
+
+  const handleRecordIncorrect = useCallback(() => {
+    setIncorrectCount(prev => prev + 1)
+    setAttemptCount(prev => prev + 1)
+  }, [])
+
+  const handleRecordCue = useCallback(() => {
+    setCueCount(prev => prev + 1)
+    setPromptCount(prev => prev + 1)
+  }, [])
+
+  const handleResetMetrics = useCallback(() => {
+    setAttemptCount(0)
+    setPromptCount(0)
+    setCorrectCount(0)
+    setIncorrectCount(0)
+    setCueCount(0)
+  }, [])
+
+  const handleSaveMetrics = useCallback(() => {
+    console.log("Saving metrics:", { 
+      goalId: selectedGoal, 
+      attemptCount,
+      promptCount,
+      correctCount,
+      incorrectCount,
+      cueCount
+    })
+    // Reset form after saving
+    handleResetMetrics()
+  }, [selectedGoal, attemptCount, promptCount, correctCount, incorrectCount, cueCount, handleResetMetrics])
 
   // Voice recording handlers
   const handleStartRecording = useCallback(() => {
@@ -455,13 +517,83 @@ function GoalDataContentInner() {
                           </Button>
                         </div>
 
-                        {/* Goal Information */}
-                        <div className="mt-6 p-4 bg-muted/30 rounded-lg">
-                          <h4 className="font-medium text-sm mb-2">Selected Goal</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {mockGoals.find(g => g.id === selectedGoal)?.title || 'No goal selected'}
-                          </p>
-                        </div>
+
+                        {/* Interactive Metrics Collection */}
+                        {(() => {
+                          const currentGoal = mockGoals.find(g => g.id === selectedGoal);
+                          return currentGoal && (
+                            <div className="mt-6 p-4 bg-white border rounded-lg space-y-6">
+                              {/* Reset Button */}
+                              <div className="flex justify-end">
+                                <Button variant="outline" size="sm" onClick={handleResetMetrics}>
+                                  <Undo className="h-4 w-4 mr-1" />
+                                  Reset
+                                </Button>
+                              </div>
+
+                              {/* Main Action Area */}
+                              <div className="flex flex-col items-center space-y-4">
+                                {/* Dashed Square */}
+                                <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                                  <Minus className="h-6 w-6 text-gray-400" />
+                                </div>
+
+                                {/* Large Action Button */}
+                                <Button 
+                                  onClick={handleRecordCorrect}
+                                  className="w-20 h-20 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                                >
+                                  <Plus className="h-8 w-8" />
+                                </Button>
+                              </div>
+
+                              {/* Attempts Counter */}
+                              <div className="flex items-center justify-center space-x-4">
+                                <div className="flex items-center space-x-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={handleDecrementAttempt}
+                                    className="w-8 h-8 p-0"
+                                  >
+                                    -
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={handleIncrementAttempt}
+                                    className="w-8 h-8 p-0"
+                                  >
+                                    +
+                                  </Button>
+                                  <span className="text-sm font-medium">Attempts</span>
+                                </div>
+                                <div className="flex space-x-2">
+                                  <div className="bg-gray-100 rounded px-3 py-1 text-lg font-bold">
+                                    {correctCount}
+                                  </div>
+                                  <div className="bg-gray-100 rounded px-3 py-1 text-lg font-bold">
+                                    {incorrectCount}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Summary */}
+                              <div className="text-center space-y-2">
+                                <div className="text-sm font-medium">
+                                  {attemptCount} Attempts • {promptCount} Prompts
+                                </div>
+                                <Button 
+                                  onClick={handleSaveMetrics}
+                                  className="bg-pink-500 hover:bg-pink-600"
+                                  size="sm"
+                                >
+                                  Save Metrics
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full text-center">
@@ -751,54 +883,171 @@ function GoalDataContentInner() {
               {/* Notes Editor */}
               <div className="flex-1 flex flex-col">
                 <div className="flex-1 p-4">
-                  <Textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Enter your notes here..."
-                    className="w-full h-full resize-none border-0 focus:ring-0 text-sm"
-                    rows={10}
+                  <div 
+                    contentEditable
+                    className="w-full h-full resize-none border-0 focus:ring-0 text-sm outline-none min-h-[200px] p-2 rounded-md border border-transparent hover:border-border focus:border-primary transition-colors"
+                    style={{ minHeight: '200px' }}
+                    onInput={(e) => {
+                      const target = e.target as HTMLElement;
+                      setNotes(target.innerText || target.textContent || '');
+                    }}
+                    dangerouslySetInnerHTML={{ __html: notes }}
+                    suppressContentEditableWarning={true}
                   />
                 </div>
                 
                 {/* Rich Text Toolbar */}
                 <div className="border-t p-2 bg-muted/30">
-                  <div className="flex items-center space-x-1">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <Bold className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <Italic className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <Underline className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <Strikethrough className="h-4 w-4" />
-                    </Button>
+                  <div className="flex items-center space-x-1 flex-wrap">
+                    {/* Text Formatting */}
+                    <div className="flex items-center space-x-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 hover:bg-accent"
+                        onClick={() => document.execCommand('bold')}
+                        title="Bold"
+                      >
+                        <Bold className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 hover:bg-accent"
+                        onClick={() => document.execCommand('italic')}
+                        title="Italic"
+                      >
+                        <Italic className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 hover:bg-accent"
+                        onClick={() => document.execCommand('underline')}
+                        title="Underline"
+                      >
+                        <Underline className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 hover:bg-accent"
+                        onClick={() => document.execCommand('strikeThrough')}
+                        title="Strikethrough"
+                      >
+                        <Strikethrough className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
                     <div className="w-px h-6 bg-border mx-1"></div>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <List className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <ListOrdered className="h-4 w-4" />
-                    </Button>
+                    
+                    {/* Lists */}
+                    <div className="flex items-center space-x-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 hover:bg-accent"
+                        onClick={() => document.execCommand('insertUnorderedList')}
+                        title="Bullet List"
+                      >
+                        <List className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 hover:bg-accent"
+                        onClick={() => document.execCommand('insertOrderedList')}
+                        title="Numbered List"
+                      >
+                        <ListOrdered className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
                     <div className="w-px h-6 bg-border mx-1"></div>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <Link className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <Code className="h-4 w-4" />
-                    </Button>
+                    
+                    {/* Links and Code */}
+                    <div className="flex items-center space-x-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 hover:bg-accent"
+                        onClick={() => {
+                          const url = prompt('Enter URL:');
+                          if (url) {
+                            document.execCommand('createLink', false, url);
+                          }
+                        }}
+                        title="Insert Link"
+                      >
+                        <Link className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 hover:bg-accent"
+                        onClick={() => document.execCommand('formatBlock', false, 'pre')}
+                        title="Code Block"
+                      >
+                        <Code className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
                     <div className="w-px h-6 bg-border mx-1"></div>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <AlignLeft className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <AlignCenter className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <AlignRight className="h-4 w-4" />
-                    </Button>
+                    
+                    {/* Text Alignment */}
+                    <div className="flex items-center space-x-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 hover:bg-accent"
+                        onClick={() => document.execCommand('justifyLeft')}
+                        title="Align Left"
+                      >
+                        <AlignLeft className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 hover:bg-accent"
+                        onClick={() => document.execCommand('justifyCenter')}
+                        title="Align Center"
+                      >
+                        <AlignCenter className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 hover:bg-accent"
+                        onClick={() => document.execCommand('justifyRight')}
+                        title="Align Right"
+                      >
+                        <AlignRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    <div className="w-px h-6 bg-border mx-1"></div>
+                    
+                    {/* Additional Actions */}
+                    <div className="flex items-center space-x-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 hover:bg-accent"
+                        onClick={() => document.execCommand('undo')}
+                        title="Undo"
+                      >
+                        <Undo className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 hover:bg-accent"
+                        onClick={() => document.execCommand('redo')}
+                        title="Redo"
+                      >
+                        <Redo className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -901,7 +1150,7 @@ function GoalDataContentInner() {
                   </div>
                   
                   <div className="space-y-2">
-                    {prompts.map((prompt, index) => (
+                    {promptOptions.map((prompt, index) => (
                       <div key={index} className="flex items-center space-x-2">
                         <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                         <Input
@@ -980,7 +1229,7 @@ function GoalDataContentInner() {
                           <div className="w-full">
                             <p className="text-sm font-medium mb-3">Options</p>
                             <RadioGroup defaultValue="more-than-2">
-                              {prompts.map((prompt, index) => (
+                              {promptOptions.map((prompt, index) => (
                                 <div key={index} className="flex items-center space-x-2">
                                   <RadioGroupItem value={prompt.toLowerCase().replace(/\s+/g, '-')} id={`preview-${index}`} />
                                   <Label htmlFor={`preview-${index}`} className="text-sm">{prompt}</Label>

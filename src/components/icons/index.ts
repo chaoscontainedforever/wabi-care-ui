@@ -44,6 +44,7 @@ export {
   ArrowLeft,
   ChevronDown,
   Undo,
+  Redo,
   Minus,
   Bookmark,
   MessageCircle,

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
 import { 
   User, 
   Search, 
@@ -40,7 +41,11 @@ function DataCollectionContent({ preselectedStudentId }: DataCollectionContentPr
     goalDetailTab: "collect",
     hasMounted: false,
     sessionDate: new Date().toISOString().split('T')[0],
-    activeTab: "students"
+    activeTab: "students",
+    // Metrics collection state
+    attempts: "",
+    prompts: "",
+    notes: ""
   })
 
   // State update helper
@@ -95,8 +100,23 @@ function DataCollectionContent({ preselectedStudentId }: DataCollectionContentPr
     onGoalSelect: (goalId: string) => updateState({ activeGoalId: goalId }),
     onGoalDetailTabChange: (tab: string) => updateState({ goalDetailTab: tab }),
     onSessionDateChange: (date: string) => updateState({ sessionDate: date }),
-    onTabChange: (tab: string) => updateState({ activeTab: tab })
-  }), [updateState])
+    onTabChange: (tab: string) => updateState({ activeTab: tab }),
+    // Metrics collection handlers
+    onAttemptsChange: (attempts: string) => updateState({ attempts }),
+    onPromptsChange: (prompts: string) => updateState({ prompts }),
+    onNotesChange: (notes: string) => updateState({ notes }),
+    onSaveMetrics: () => {
+      // TODO: Implement save logic
+      console.log("Saving metrics:", { 
+        goalId: state.activeGoalId, 
+        attempts: state.attempts, 
+        prompts: state.prompts, 
+        notes: state.notes 
+      })
+      // Reset form after saving
+      updateState({ attempts: "", prompts: "", notes: "" })
+    }
+  }), [updateState, state.activeGoalId, state.attempts, state.prompts, state.notes])
 
   if (!state.hasMounted) {
     return (
@@ -431,6 +451,73 @@ function DataCollectionContent({ preselectedStudentId }: DataCollectionContentPr
                       </Card>
                     ))}
                   </div>
+
+                  {/* Metrics Collection Section - Show when any goal is selected */}
+                  {state.activeGoalId && filteredGoals.find(goal => goal.id === state.activeGoalId) && (
+                    <Card className="mt-6">
+                      <CardHeader>
+                        <CardTitle className="text-lg">Collect Metrics</CardTitle>
+                        <CardDescription>
+                          Record attempts and prompts for the selected goal
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        {/* Attempts Selection */}
+                        <div className="space-y-3">
+                          <label className="text-sm font-medium text-gray-700">Attempts</label>
+                          <Select value={state.attempts} onValueChange={handlers.onAttemptsChange}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select attempt level" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="independent">Independent</SelectItem>
+                              <SelectItem value="1-2-prompts">1-2 Prompts</SelectItem>
+                              <SelectItem value="more-than-2-prompts">More than 2 Prompts</SelectItem>
+                              <SelectItem value="no-response">No response</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Prompts Selection */}
+                        <div className="space-y-3">
+                          <label className="text-sm font-medium text-gray-700">Prompts</label>
+                          <Select value={state.prompts} onValueChange={handlers.onPromptsChange}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select prompt level" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="independent">Independent</SelectItem>
+                              <SelectItem value="1-2-prompts">1-2 Prompts</SelectItem>
+                              <SelectItem value="more-than-2-prompts">More than 2 Prompts</SelectItem>
+                              <SelectItem value="no-response">No response</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Notes */}
+                        <div className="space-y-3">
+                          <label className="text-sm font-medium text-gray-700">Notes</label>
+                          <Textarea
+                            placeholder="Add any additional notes about the session..."
+                            value={state.notes}
+                            onChange={(e) => handlers.onNotesChange(e.target.value)}
+                            className="min-h-[100px]"
+                          />
+                        </div>
+
+                        {/* Save Button */}
+                        <div className="flex justify-end">
+                          <Button 
+                            onClick={handlers.onSaveMetrics}
+                            disabled={!state.attempts || !state.prompts}
+                            className="bg-pink-500 hover:bg-pink-600"
+                          >
+                            Save Metrics
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {filteredGoals.length === 0 && (
                     <div className="text-center py-8">
