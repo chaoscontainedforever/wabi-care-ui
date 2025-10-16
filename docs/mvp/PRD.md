@@ -145,12 +145,13 @@ AI Notes   Billing   Scheduling
 
 ### Phase 1: Core Workflow (Weeks 1-4)
 
-#### Feature 1: Smart Data Collection
+#### Feature 1: Smart Data Collection & Document OCR
 
 **User Story**: As an RBT, I want to record trial data quickly on my phone so I spend more time teaching.
 
 **Requirements**:
 - [ ] Mobile-responsive data collection interface
+- [ ] Upload PDF/Doc/Excel for ingestion
 - [ ] Offline-first (works without internet)
 - [ ] One-tap correct/incorrect/prompted recording
 - [ ] Voice note option (dictate observations)
@@ -160,10 +161,17 @@ AI Notes   Billing   Scheduling
 
 **Success Metrics**:
 - Data entry time < 5 seconds per trial
+- Document processing < 2 minutes per file
 - 95%+ offline reliability
 - Zero data loss
 
 **AI Enhancement**: Voice notes auto-transcribed via Azure Speech Service
+
+**Document OCR Pipeline**:
+- Azure Blob Storage for uploads
+- Azure AI Document Intelligence for OCR & table extraction
+- Azure Cosmos DB for structured results
+- Optional Azure OpenAI summarization
 
 ---
 
