@@ -53,5 +53,5 @@ flowchart TD
   Alerts_UI --> Alerts_API --> Alerts_AI --> Alerts_Teams
 
   classDef storage fill:#d1fae5,stroke:#047857
-  classNote_Storage,Sched_Graph,Alerts_Teams storage
+  class Note_Storage,Sched_Graph,Alerts_Teams storage
 ```
