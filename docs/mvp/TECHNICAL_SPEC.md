@@ -12,7 +12,7 @@
 Wabi Care MVP is built as a **modular monolith** using Next.js 14, designed for rapid development and deployment within 4-6 weeks. This architecture prioritizes simplicity, speed to market, and ease of iteration for pilot customers while maintaining a clear path to microservices if needed post-validation.
 
 **Architecture**: Next.js 14 full-stack monolith  
-**Database**: Single Azure Cosmos DB  
+**Database**: Supabase (MVP) → Azure Cosmos DB (Scale-up)  
 **Deployment**: Azure Static Web Apps  
 **Cost**: $300-500/month
 
@@ -48,8 +48,8 @@ Wabi Care MVP is built as a **modular monolith** using Next.js 14, designed for 
                            │
                            ▼
             ┌──────────────────────────────┐
-            │    Azure Cosmos DB            │
-            │  (Single Database Instance)   │
+            │    Supabase (Postgres)        │
+            │    Azure Cosmos DB (Phase 2)  │
             │                               │
             │  Collections:                 │
             │  - patients                   │
@@ -96,7 +96,8 @@ Wabi Care MVP is built as a **modular monolith** using Next.js 14, designed for 
 |------------|---------|---------|
 | **Next.js API Routes** | 14.x | Backend endpoints |
 | **NextAuth.js** | Latest | Authentication |
-| **@azure/cosmos** | Latest | Cosmos DB client |
+| **@supabase/supabase-js** | Latest | Supabase client (current) |
+| **@azure/cosmos** | Latest | Cosmos DB client (phase 2) |
 | **Azure OpenAI SDK** | Latest | AI integration |
 | **Azure Communication Services** | Latest | SMS/Email |
 | **Microsoft Graph SDK** | Latest | M365 integration |
@@ -105,7 +106,8 @@ Wabi Care MVP is built as a **modular monolith** using Next.js 14, designed for 
 
 | Technology | Purpose |
 |------------|---------|
-| **Azure Cosmos DB** | Primary database (NoSQL) |
+| **Supabase Postgres** | Database (MVP) |
+| **Azure Cosmos DB** | Database (Phase 2) |
 | **Partition Key Strategy** | `practiceId` for multi-tenancy |
 
 ### AI/ML Services
@@ -139,8 +141,10 @@ Wabi Care MVP is built as a **modular monolith** using Next.js 14, designed for 
 2. Azure Static Web Apps (CDN)
    ↓
 3. Next.js App
-   ├── Server Component (SSR) → Cosmos DB
-   ├── Client Component (CSR) → API Route → Cosmos DB
+   ├── Server Component (SSR) → Supabase (via RPC) *(MVP)*
+   ├── Client Component (CSR) → API Route → Supabase *(MVP)*
+   ├── Server Component (SSR) → Cosmos DB *(Phase 2)*
+   ├── Client Component (CSR) → API Route → Cosmos DB *(Phase 2)*
    └── API Route → External Service (OpenAI, Graph API)
    ↓
 4. Response
@@ -378,7 +382,7 @@ interface ClaimDocument {
 }
 ```
 
-### Cosmos DB Configuration
+### Cosmos DB Configuration (Phase 2)
 
 ```typescript
 // lib/cosmos.ts
@@ -389,7 +393,7 @@ const client = new CosmosClient({
   key: process.env.COSMOS_KEY!
 });
 
-export const database = client.database('wabicare-mvp');
+export const database = client.database('wabicare-prod');
 
 // Autoscale throughput (400-1000 RU/s)
 export const containers = {
@@ -400,6 +404,8 @@ export const containers = {
   claims: database.container('claims')
 };
 ```
+
+> **Note:** For the MVP, Supabase handles all persistence. The Cosmos client above becomes active during the scale-up phase once data migration completes.
 
 ---
 

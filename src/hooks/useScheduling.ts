@@ -1,12 +1,11 @@
 import { useState, useCallback, useEffect } from "react"
-import { createClient } from "@supabase/supabase-js"
 import { useStudents } from "./useSupabase"
 
 import { mockCalendarSessions } from "@/data/mockCalendarSessions"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseKey)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const hasSupabaseConfig = Boolean(supabaseUrl && supabaseKey)
 
 export type SchedulingSuggestion = {
   id: string
@@ -60,7 +59,7 @@ export function useSchedulingSuggestions() {
     console.log('Scheduling: Students count:', students.length)
     
     // If no students, create some sample data for demonstration
-    if (students.length === 0) {
+    if (!hasSupabaseConfig || students.length === 0) {
       console.log('Scheduling: No students found, creating sample data')
       const sampleStudents = [
         { id: '1', name: 'Alex Johnson' },
@@ -142,7 +141,7 @@ export function useSchedulingCalendar() {
     console.log('Calendar: Students count:', students.length)
     
     // If no students, create some sample calendar data for demonstration
-    if (students.length === 0) {
+    if (!hasSupabaseConfig || students.length === 0) {
       console.log('Calendar: No students found, creating sample data')
       const sampleStudents = [
         { id: '1', name: 'Alex Johnson' },

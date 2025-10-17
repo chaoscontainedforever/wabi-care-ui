@@ -82,7 +82,7 @@ See [AI_SHOWCASE.md](./AI_SHOWCASE.md) for details.
 
 **Frontend**: Next.js 14, React 18, TypeScript, Tailwind CSS, Shadcn UI  
 **Backend**: Next.js API Routes  
-**Database**: Azure Cosmos DB (single instance)  
+**Database**: Supabase (Postgres) for MVP → Azure Cosmos DB (phase 2)  
 **AI**: Azure OpenAI (GPT-4), Azure Speech Service  
 **Auth**: NextAuth.js + Azure AD B2C  
 **M365**: Microsoft Graph API (Teams, Outlook, OneDrive)  
@@ -102,7 +102,7 @@ Next.js 14 Application
 │   ├── /lib/scheduling
 │   ├── /lib/billing
 │   └── /lib/m365
-└── Single Database (Cosmos DB)
+└── Single Database (Supabase Postgres → Cosmos DB phase 2)
 ```
 
 **Why Monolith?**

@@ -1,10 +1,9 @@
 import { useState, useCallback, useEffect } from "react"
-import { createClient } from "@supabase/supabase-js"
 import { useStudents } from "./useSupabase"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseKey)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const hasSupabaseConfig = Boolean(supabaseUrl && supabaseKey)
 
 export type BillingClaim = {
   id: string
@@ -67,7 +66,7 @@ export function useBilling() {
     console.log('Billing: Students count:', students.length)
     
     // If no students, create some sample data for demonstration
-    if (students.length === 0) {
+    if (!hasSupabaseConfig || students.length === 0) {
       console.log('Billing: No students found, creating sample data')
       const sampleStudents = [
         { id: '1', name: 'Alex Johnson' },
@@ -148,7 +147,7 @@ export function useBilling() {
   }, [students])
 
   useEffect(() => {
-    if (students.length > 0) {
+    if (students.length > 0 || !hasSupabaseConfig) {
       fetchClaims()
     }
   }, [fetchClaims, students])
