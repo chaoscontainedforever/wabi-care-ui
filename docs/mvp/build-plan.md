@@ -17,7 +17,7 @@ The `wabi-care-softui` folder already has significant MVP foundation:
 **What Needs Changing (Migration Required)**:
 
 - **Auth**: Supabase Auth → Azure AD B2C + NextAuth.js
-- **Database**: Supabase → Azure Cosmos DB
+- **Database**: Supabase → Azure Cosmos DB (phase 2). MVP keeps Supabase to accelerate delivery.
 - **Add**: 6 AI features (none exist currently)
 - **Add**: Microsoft 365 integration (OneDrive, Outlook, Teams)
 - **Add**: Offline-first data collection (IndexedDB sync)

@@ -170,7 +170,8 @@ AI Notes   Billing   Scheduling
 **Document OCR Pipeline**:
 - Azure Blob Storage for uploads
 - Azure AI Document Intelligence for OCR & table extraction
-- Azure Cosmos DB for structured results
+- Supabase (MVP) for structured results
+- Azure Cosmos DB (Phase 2) once migrated
 - Optional Azure OpenAI summarization
 
 ---
