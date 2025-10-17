@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useAuth } from "@/contexts/AuthContext"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { 
   Users, 
   Target, 
@@ -13,6 +14,8 @@ import {
   ClipboardList,
   TrendingUp,
   Calendar,
+  CalendarClock,
+  Receipt,
   Home,
   ChevronDown,
   ChevronRight,
@@ -34,6 +37,13 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 // Wabi Care navigation data for special education platform
+const roleNavigationMap: Record<string, string[]> = {
+  RBT: ["Students", "Data Collection", "Scheduling"],
+  BCBA: ["Students", "Data Collection", "Scheduling"],
+  Administrator: ["Students", "Scheduling", "Smart Billing"],
+  Parent: ["Scheduling", "Data Collection"],
+}
+
 const navigationData = {
   platform: [
     {
@@ -53,12 +63,31 @@ const navigationData = {
     },
     {
       title: "Data Collection",
-      url: "/assessments",
+      url: "/goal-data",
       icon: ClipboardList,
       items: [
         { title: "Goal Data", url: "/goal-data" },
+        { title: "Session Reporting", url: "/session-reporting" },
         { title: "Goal Bank", url: "/iep-goals" },
         { title: "Form Bank", url: "/form-bank" },
+      ],
+    },
+    {
+      title: "Smart Billing",
+      url: "/billing",
+      icon: Receipt,
+      items: [
+        { title: "Dashboard", url: "/billing" },
+        { title: "Claim Audit", url: "/billing/claim-audit" },
+      ],
+    },
+    {
+      title: "Scheduling",
+      url: "/scheduling",
+      icon: CalendarClock,
+      items: [
+        { title: "Dashboard", url: "/scheduling" },
+        { title: "Calendar", url: "/calendar" },
       ],
     },
     {
@@ -83,11 +112,6 @@ const navigationData = {
       ],
     },
     {
-      title: "Calendar",
-      url: "/calendar",
-      icon: Calendar,
-    },
-    {
       title: "Tasks",
       url: "/tasks",
       icon: TrendingUp,
@@ -107,16 +131,119 @@ const navigationData = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
+  const [navSections, setNavSections] = useState<string[] | null>(null)
+  const [loadingPersona, setLoadingPersona] = useState(false)
+  const [personaLabel, setPersonaLabel] = useState<string | null>(null)
   const { state, setOpen } = useSidebar()
   const pathname = usePathname()
   const router = useRouter()
   const isMobile = useIsMobile()
   const { user, signOut } = useAuth()
 
+  useEffect(() => {
+    if (!user?.email) {
+      setNavSections(null)
+      setPersonaLabel(null)
+      return
+    }
 
+    const sectionsKey = `navSections:${user.email}`
+    const personaKey = `personaLabel:${user.email}`
+
+    let hasCachedData = false
+    if (typeof window !== "undefined") {
+      const storedSections = window.sessionStorage.getItem(sectionsKey)
+      if (storedSections) {
+        try {
+          const parsed = JSON.parse(storedSections) as string[]
+          if (Array.isArray(parsed)) {
+            setNavSections(parsed)
+            hasCachedData = true
+          }
+        } catch (err) {
+          console.warn("Failed to parse cached nav sections", err)
+        }
+      }
+      const storedPersona = window.sessionStorage.getItem(personaKey)
+      if (storedPersona) {
+        setPersonaLabel(storedPersona)
+      }
+    }
+
+    let isMounted = true
+    const fetchPersonaNav = async () => {
+      try {
+        if (!hasCachedData) {
+          setLoadingPersona(true)
+        }
+        const supabase = createClientComponentClient()
+        const { data, error } = await supabase
+          .from("user_portal_roles")
+          .select("nav_sections, persona")
+          .eq("email", user.email)
+          .maybeSingle()
+
+        if (error) throw error
+        if (!isMounted) return
+
+        const sections = data?.nav_sections ?? null
+        const persona = data?.persona ?? null
+        setNavSections(sections)
+        setPersonaLabel(persona)
+
+        if (typeof window !== "undefined") {
+          if (sections) {
+            window.sessionStorage.setItem(sectionsKey, JSON.stringify(sections))
+          } else {
+            window.sessionStorage.removeItem(sectionsKey)
+          }
+
+          if (persona) {
+            window.sessionStorage.setItem(personaKey, persona)
+          } else {
+            window.sessionStorage.removeItem(personaKey)
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load persona navigation", err)
+        if (!isMounted) return
+        setNavSections(null)
+        setPersonaLabel(null)
+        if (typeof window !== "undefined") {
+          window.sessionStorage.removeItem(sectionsKey)
+          window.sessionStorage.removeItem(personaKey)
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingPersona(false)
+        }
+      }
+    }
+
+    fetchPersonaNav()
+
+    return () => {
+      isMounted = false
+    }
+  }, [user?.email])
+
+  const filteredNavigationData = useMemo(() => {
+    if (!navSections) {
+      return navigationData
+    }
+
+    const filteredPlatform = navigationData.platform.filter((item) =>
+      item.title === "Dashboard" || navSections.includes(item.title)
+    )
+
+    return {
+      platform: filteredPlatform,
+      reportsAndTools: navigationData.reportsAndTools,
+    }
+  }, [navSections])
 
   // Memoize the data to prevent unnecessary re-renders
-  const memoizedData = useMemo(() => navigationData, [])
+  const memoizedData = useMemo(() => filteredNavigationData, [filteredNavigationData])
 
   // Function to find which parent category contains the current path
   const findParentCategory = useCallback((pathname: string) => {
@@ -243,7 +370,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </div>
           )}
           <SidebarMenu className={`gap-1 ${state === "expanded" ? "" : "flex items-center flex-col"}`}>
-            {memoizedData.platform.map((item) => {
+            {loadingPersona && memoizedData.platform.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-muted-foreground">Loading navigation…</div>
+            ) : memoizedData.platform.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-muted-foreground">No sections assigned</div>
+            ) : memoizedData.platform.map((item) => {
               const Icon = item.icon
               const isExpanded = expandedItems.has(item.title)
               const hasItems = item.items && item.items.length > 0
@@ -326,7 +457,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </div>
           )}
           <SidebarMenu className={`gap-1 ${state === "expanded" ? "" : "flex items-center flex-col"}`}>
-            {memoizedData.reportsAndTools.map((item) => {
+            {loadingPersona && memoizedData.reportsAndTools.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-muted-foreground">Loading navigation…</div>
+            ) : memoizedData.reportsAndTools.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-muted-foreground">No sections assigned</div>
+            ) : memoizedData.reportsAndTools.map((item) => {
               const Icon = item.icon
               const isExpanded = expandedItems.has(item.title)
               const hasItems = item.items && item.items.length > 0
@@ -431,9 +566,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         <span className="text-sm font-medium text-foreground truncate">
                           {user.user_metadata?.full_name || user.email?.split('@')[0] || "User"}
                         </span>
-                        <span className="text-xs text-muted-foreground truncate">
-                          Teacher
-                        </span>
+                         <span className="text-xs text-muted-foreground truncate">
+                           {personaLabel ?? "Member"}
+                         </span>
                       </div>
                     )}
                   </div>
