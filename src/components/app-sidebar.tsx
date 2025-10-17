@@ -172,6 +172,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     let isMounted = true
     const fetchPersonaNav = async () => {
+      // If Supabase env vars are missing, fall back immediately to full navigation
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        console.warn("Supabase env vars missing. Falling back to default navigation.")
+        setNavSections(null)
+        setPersonaLabel(null)
+        setLoadingPersona(false)
+        return
+      }
+
       try {
         if (!hasCachedData) {
           setLoadingPersona(true)
