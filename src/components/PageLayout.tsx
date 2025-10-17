@@ -108,3 +108,5 @@ export function PageLayout({ children, breadcrumbs, title }: PageLayoutProps) {
     </SidebarProvider>
   )
 }
+
+export default PageLayout

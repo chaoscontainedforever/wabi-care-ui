@@ -11,22 +11,11 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!loading && user) {
+      console.log('User authenticated, redirecting to dashboard')
       router.push("/dashboard")
     }
   }, [user, loading, router])
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // If user is logged in, they'll be redirected to dashboard
-  // If not logged in, show the login page directly
+  // Always show login page for now to debug the issue
   return <LoginPage />
 }

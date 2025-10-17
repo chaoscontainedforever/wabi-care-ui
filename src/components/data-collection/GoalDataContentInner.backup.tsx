@@ -61,28 +61,20 @@ import { SessionLauncher } from "@/components/data-collection/SessionLauncher"
 import { DataCollectionTabs } from "@/components/data-collection/DataCollectionTabs"
 import { DocumentUploadDrawer } from "@/components/data-collection/DocumentUploadDrawer"
 import { DataModeSelector } from "@/components/data-collection/DataModeSelector"
-import { 
-  DiscreteTrialPanel,
-  TaskAnalysisPanel,
-  FrequencyPanel,
-  DurationPanel,
-  ABCPanels,
-  NotesPanel
-} from "@/components/data-collection/ModePanels"
 import { PromptLevelManager } from "@/components/data-collection/PromptLevelManager"
-import { useStudents, useGoals } from "@/hooks/useSupabase"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import type { GoalSessionState, TrialRecord, TaskAnalysisStep, ABCRecord } from "@/components/data-collection/types"
+import { GroupSessionToggle } from "@/components/data-collection/GroupSessionToggle"
+import { DiscreteTrialPanel, NotesPanel } from "@/components/data-collection/ModePanels"
+import { useStudents } from "@/hooks/useSupabase"
 
 function GoalDataContentInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const selectedStudentId = searchParams.get('student')
-  const supabase = createClientComponentClient()
   
   const { students, loading: studentsLoading } = useStudents()
   const [sessionStarted, setSessionStarted] = useState(false)
   const [selectedMode, setSelectedMode] = useState("prompting-levels")
+  const [groupSession, setGroupSession] = useState(false)
   
   const [searchTerm, setSearchTerm] = useState("")
   const [localSelectedStudentId, setLocalSelectedStudentId] = useState<string | null>(selectedStudentId)
@@ -119,36 +111,6 @@ function GoalDataContentInner() {
   ])
   const [dataPoints, setDataPoints] = useState(10)
 
-  // Per-goal session state
-  const [goalSessions, setGoalSessions] = useState<Record<string, GoalSessionState>>({})
-
-  const createId = () => Math.random().toString(36).substring(2, 15)
-
-  const getGoalSession = useCallback((goalId: string): GoalSessionState => {
-    return goalSessions[goalId] || {
-      currentPrompt: "Independent",
-      totalAttempts: 0,
-      correctCount: 0,
-      incorrectCount: 0,
-      trialHistory: [],
-      taskSteps: [],
-      frequencyCount: 0,
-      frequencyHistory: [],
-      durationCurrent: undefined,
-      durationHistory: [],
-      abcEntries: [],
-      sessionNotes: "",
-      lastMode: "prompting-levels",
-    }
-  }, [goalSessions])
-
-  const upsertGoalSession = useCallback((goalId: string, updater: (prev: GoalSessionState) => GoalSessionState) => {
-    setGoalSessions(prev => ({
-      ...prev,
-      [goalId]: updater(prev[goalId] || getGoalSession(goalId))
-    }))
-  }, [getGoalSession])
-
   // Data modes configuration
   const dataModes = [
     { id: "prompting-levels", name: "Prompt Levels", icon: ClipboardList, description: "Capture correct/incorrect with prompts" },
@@ -156,19 +118,6 @@ function GoalDataContentInner() {
     { id: "duration", name: "Duration", icon: Clock, description: "Track time per behavior", comingSoon: true },
     { id: "abc", name: "ABC Data", icon: Target, description: "Antecedent-Behavior-Consequence", comingSoon: true }
   ]
-
-  // Get current session for selected goal
-  const currentSession = selectedGoal ? getGoalSession(selectedGoal) : undefined
-  
-  // Derived session data
-  const trialHistory = currentSession?.trialHistory || []
-  const taskSteps = currentSession?.taskSteps || []
-  const frequencyCount = currentSession?.frequencyCount || 0
-  const frequencyHistory = currentSession?.frequencyHistory || []
-  const durationCurrent = currentSession?.durationCurrent
-  const durationHistory = currentSession?.durationHistory || []
-  const abcEntries = currentSession?.abcEntries || []
-  const sessionNotes = currentSession?.sessionNotes || ""
 
   const handleStudentChange = useCallback((studentId: string) => {
     setLocalSelectedStudentId(studentId)
@@ -207,103 +156,54 @@ function GoalDataContentInner() {
     setSelectedMode(mode)
   }, [])
 
-  const handlePromptChange = useCallback((promptLevel: string) => {
-    if (selectedGoal) {
-      upsertGoalSession(selectedGoal, (prev) => ({ ...prev, currentPrompt: promptLevel }))
-    }
-  }, [selectedGoal, upsertGoalSession])
+  const placeholderContent = (
+    <div className="flex flex-col items-center justify-center h-full text-center">
+      <Bookmark className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">Select a Goal</h3>
+      <p className="text-gray-600">Choose a goal from the sidebar to start data collection.</p>
+    </div>
+  )
 
-  // Task analysis handlers
-  const handleTaskStepUpdate = useCallback((stepId: string, status: TaskAnalysisStep["status"]) => {
-    if (!selectedGoal) return
-    upsertGoalSession(selectedGoal, (prev) => ({
-      ...prev,
-      taskSteps: prev.taskSteps.map((step) =>
-        step.id === stepId ? { ...step, status } : step
-      ),
-    }))
-  }, [selectedGoal, upsertGoalSession])
+  const captureTabContent = selectedGoal ? (
+    <div className="space-y-4 h-full">
+      <div className="flex items-center justify-between">
+        <PromptLevelManager
+          promptOptions={promptOptions}
+          onAdd={handleAddPrompt}
+          onRemove={handleRemovePrompt}
+          onUpdate={handleUpdatePrompt}
+        />
+        <GroupSessionToggle enabled={groupSession} onToggle={setGroupSession} />
+      </div>
+      <DataModeSelector
+        modes={dataModes}
+        currentMode={selectedMode}
+        onSelect={handleSelectMode}
+      />
 
-  const handleTaskAddStep = useCallback((label: string) => {
-    if (!selectedGoal) return
-    upsertGoalSession(selectedGoal, (prev) => ({
-      ...prev,
-      taskSteps: [...prev.taskSteps, { id: createId(), label, status: "not_attempted" }],
-    }))
-  }, [selectedGoal, upsertGoalSession, createId])
+      {selectedMode === 'prompting-levels' && (
+        <DiscreteTrialPanel
+          onRecordCorrect={handleRecordCorrect}
+          onRecordIncorrect={handleRecordIncorrect}
+          onIncrementPrompt={handleIncrementPrompt}
+          onDecrementPrompt={handleDecrementPrompt}
+          metrics={{ attempts: attemptCount, prompts: promptCount, correct: correctCount, incorrect: incorrectCount }}
+        />
+      )}
 
-  const handleTaskRemoveStep = useCallback((stepId: string) => {
-    if (!selectedGoal) return
-    upsertGoalSession(selectedGoal, (prev) => ({
-      ...prev,
-      taskSteps: prev.taskSteps.filter((step) => step.id !== stepId),
-    }))
-  }, [selectedGoal, upsertGoalSession])
+      {selectedMode !== 'prompting-levels' && (
+        <Card className='p-4 bg-muted/20 border-dashed border-muted'>
+          <p className='text-sm text-muted-foreground'>This capture mode will be enabled in the Azure-backed data pipeline.</p>
+        </Card>
+      )}
 
-  // Duration handlers
-  const handleStartDuration = useCallback((note?: string) => {
-    if (!selectedGoal) return
-    upsertGoalSession(selectedGoal, (prev) => ({
-      ...prev,
-      durationCurrent: { start: Date.now(), note },
-    }))
-  }, [selectedGoal, upsertGoalSession])
+      <NotesPanel value={notes} onChange={setNotes} />
+    </div>
+  ) : placeholderContent
 
-  const handleStopDuration = useCallback(() => {
-    if (!selectedGoal) return
-    upsertGoalSession(selectedGoal, (prev) => {
-      if (!prev.durationCurrent) return prev
-      const newEntry = {
-        id: createId(),
-        start: prev.durationCurrent.start,
-        end: Date.now(),
-        note: prev.durationCurrent.note,
-      }
-      return {
-        ...prev,
-        durationCurrent: undefined,
-        durationHistory: [newEntry, ...prev.durationHistory],
-      }
-    })
-  }, [selectedGoal, upsertGoalSession, createId])
-
-  const handleResetDuration = useCallback(() => {
-    if (!selectedGoal) return
-    upsertGoalSession(selectedGoal, (prev) => ({
-      ...prev,
-      durationCurrent: undefined,
-      durationHistory: [],
-    }))
-  }, [selectedGoal, upsertGoalSession])
-
-  // Frequency handlers
-  const handleIncrementFrequency = useCallback(() => {
-    if (!selectedGoal) return
-    const newEntry = { id: createId(), timestamp: Date.now() }
-    upsertGoalSession(selectedGoal, (prev) => ({
-      ...prev,
-      frequencyCount: prev.frequencyCount + 1,
-      frequencyHistory: [newEntry, ...prev.frequencyHistory],
-    }))
-  }, [selectedGoal, upsertGoalSession, createId])
-
-  const handleResetFrequency = useCallback(() => {
-    if (!selectedGoal) return
-    upsertGoalSession(selectedGoal, (prev) => ({
-      ...prev,
-      frequencyCount: 0,
-      frequencyHistory: [],
-    }))
-  }, [selectedGoal, upsertGoalSession])
-
-  // ABC handlers
-  const handleABCAdd = useCallback((entry: Omit<ABCRecord, "id" | "time">) => {
-    if (!selectedGoal) return
-    upsertGoalSession(selectedGoal, (prev) => ({
-      ...prev,
-      abcEntries: [{ id: createId(), time: Date.now(), ...entry }, ...prev.abcEntries],
-    }))
-  }, [selectedGoal, upsertGoalSession, createId])
+  const graphTabContent = selectedGoal ? graphContent : placeholderContent
+  const statsTabContent = selectedGoal ? statsContent : placeholderContent
+  const documentsTabContent = selectedGoal ? documentsContent : placeholderContent
 
   // Interactive metrics collection handlers
   const handleIncrementAttempt = useCallback(() => {
@@ -357,55 +257,6 @@ function GoalDataContentInner() {
     // Reset form after saving
     handleResetMetrics()
   }, [selectedGoal, attemptCount, promptCount, correctCount, incorrectCount, cueCount, handleResetMetrics])
-
-  // Supabase data persistence
-  const saveTrialToSupabase = useCallback(async (trial: TrialRecord) => {
-    try {
-      // For now, just log the trial data - Supabase integration can be added later
-      console.log('Trial data to save:', {
-        student_id: selectedStudentId,
-        goal_id: selectedGoal,
-        performance_level: trial.promptLevel,
-        score: trial.outcome === 'correct' ? 1 : 0,
-        max_score: 1,
-        notes: trial.notes,
-        timestamp: new Date().toISOString()
-      })
-      
-      // TODO: Implement actual Supabase saving when session management is properly set up
-      console.log('Trial logged successfully (Supabase integration pending)')
-    } catch (error) {
-      console.error('Error saving trial:', error)
-    }
-  }, [selectedStudentId, selectedGoal])
-
-  const handleRecordTrial = useCallback(
-    (outcome: "correct" | "incorrect", promptLevel?: string, note?: string) => {
-      if (!selectedGoal) return
-      const currentSession = getGoalSession(selectedGoal)
-      const trial: TrialRecord = {
-        id: createId(),
-        outcome,
-        promptLevel: promptLevel || currentSession?.currentPrompt || "Independent",
-        timestamp: Date.now(),
-        notes: note
-      }
-
-      // Update local state
-      setTrialHistory(prev => [trial, ...prev])
-      upsertGoalSession(selectedGoal!, (prev) => ({
-        ...prev,
-        totalAttempts: prev.totalAttempts + 1,
-        correctCount: prev.correctCount + (outcome === "correct" ? 1 : 0),
-        incorrectCount: prev.incorrectCount + (outcome === "incorrect" ? 1 : 0),
-        currentPrompt: promptLevel || prev.currentPrompt
-      }))
-
-      // Save to Supabase
-      saveTrialToSupabase(trial)
-    },
-    [selectedGoal, getGoalSession, upsertGoalSession, saveTrialToSupabase, createId]
-  )
 
   // Voice recording handlers
   const handleStartRecording = useCallback(() => {
@@ -484,8 +335,7 @@ function GoalDataContentInner() {
       level: 'Level 3',
       target_percentage: 80,
       current_progress: 0,
-      status: 'completed',
-      mode: 'prompting-levels'
+      status: 'completed'
     },
     {
       id: '2',
@@ -495,8 +345,7 @@ function GoalDataContentInner() {
       level: 'Level 2',
       target_percentage: 75,
       current_progress: 0,
-      status: 'pending',
-      mode: 'prompting-levels'
+      status: 'pending'
     },
     {
       id: '3',
@@ -506,19 +355,7 @@ function GoalDataContentInner() {
       level: 'Level 1',
       target_percentage: 70,
       current_progress: 0,
-      status: 'pending',
-      mode: 'prompting-levels'
-    },
-    {
-      id: '4',
-      title: 'Reduce Hand-Flapping Behavior',
-      description: 'Student will demonstrate a reduction in hand-flapping behavior from baseline of 20 instances/hour to 5 instances/hour',
-      domain: 'Behavior',
-      level: 'Baseline',
-      target_percentage: 75,
-      current_progress: 0,
-      status: 'pending',
-      mode: 'frequency'
+      status: 'pending'
     }
   ]
 
@@ -528,278 +365,6 @@ function GoalDataContentInner() {
       goal.description.toLowerCase().includes(searchTerm.toLowerCase())
     )
   }, [searchTerm])
-
-  const placeholderContent = (
-    <div className="flex flex-col items-center justify-center h-full text-center">
-      <Bookmark className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">Select a Goal</h3>
-      <p className="text-gray-600">Choose a goal from the sidebar to start data collection.</p>
-    </div>
-  )
-
-  const captureTabContent = selectedGoal ? (
-    <div className="space-y-4 h-full">
-      {/* Prompt Level Management */}
-      <PromptLevelManager
-        promptOptions={promptOptions}
-        onAdd={handleAddPrompt}
-        onRemove={handleRemovePrompt}
-        onUpdate={handleUpdatePrompt}
-      />
-
-      {/* Data Mode Selection */}
-      <DataModeSelector
-        modes={dataModes}
-        currentMode={selectedMode}
-        onSelect={handleSelectMode}
-      />
-
-      {/* Data Collection Panels */}
-      {selectedMode === 'prompting-levels' && currentSession && (
-        <DiscreteTrialPanel
-          session={currentSession}
-          onRecord={handleRecordTrial}
-          onPromptChange={handlePromptChange}
-          history={trialHistory}
-        />
-      )}
-
-      {selectedMode === 'task-analysis' && (
-        <TaskAnalysisPanel
-          steps={taskSteps}
-          onUpdateStep={handleTaskStepUpdate}
-          onAddStep={handleTaskAddStep}
-          onRemoveStep={handleTaskRemoveStep}
-        />
-      )}
-
-      {selectedMode === 'frequency' && (
-        <FrequencyPanel
-          count={frequencyCount}
-          history={frequencyHistory}
-          onIncrement={handleIncrementFrequency}
-          onReset={handleResetFrequency}
-        />
-      )}
-
-      {selectedMode === 'duration' && (
-        <DurationPanel
-          current={durationCurrent}
-          history={durationHistory}
-          onStart={handleStartDuration}
-          onStop={handleStopDuration}
-          onReset={handleResetDuration}
-        />
-      )}
-
-      {selectedMode === 'abc' && (
-        <ABCPanels
-          history={abcEntries}
-          onAdd={handleABCAdd}
-        />
-      )}
-
-      {/* Session Notes */}
-      <NotesPanel value={notes} onChange={setNotes} />
-    </div>
-  ) : placeholderContent
-
-  const graphTabContent = selectedGoal ? (
-    <div className="p-4 space-y-4">
-      {trialHistory.length > 0 ? (
-        <>
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Progress Graph</h3>
-            <div className="text-sm text-muted-foreground">
-              {trialHistory.length} trials recorded
-            </div>
-          </div>
-          
-          {/* Simple Line Chart */}
-          <div className="bg-white border rounded-lg p-4">
-            <div className="h-64 relative">
-              <svg width="100%" height="100%" viewBox="0 0 400 250" preserveAspectRatio="xMidYMid meet">
-                {/* Grid lines */}
-                <defs>
-                  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f3f4f6" strokeWidth="1"/>
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#grid)" />
-                
-                {/* Y-axis labels */}
-                {[0, 25, 50, 75, 100].map((value) => (
-                  <text
-                    key={value}
-                    x="20"
-                    y={220 - (value * 1.8)}
-                    className="text-xs fill-gray-500"
-                  >
-                    {value}%
-                  </text>
-                ))}
-                
-                {/* X-axis labels */}
-                {trialHistory.map((trial, index) => (
-                  <text
-                    key={index}
-                    x={60 + (index * 30)}
-                    y="240"
-                    className="text-xs fill-gray-500"
-                    textAnchor="middle"
-                  >
-                    T{trialHistory.length - index}
-                  </text>
-                ))}
-                
-                {/* Line chart */}
-                <polyline
-                  fill="none"
-                  stroke="#ec4899"
-                  strokeWidth="3"
-                  points={trialHistory.map((trial, index) => {
-                    const accuracy = trial.outcome === "correct" ? 100 : 0
-                    return `${60 + (index * 30)},${220 - (accuracy * 1.8)}`
-                  }).join(' ')}
-                />
-                
-                {/* Data points */}
-                {trialHistory.map((trial, index) => {
-                  const accuracy = trial.outcome === "correct" ? 100 : 0
-                  return (
-                    <circle
-                      key={index}
-                      cx={60 + (index * 30)}
-                      cy={220 - (accuracy * 1.8)}
-                      r="4"
-                      fill={trial.outcome === "correct" ? "#10b981" : "#ef4444"}
-                      stroke="white"
-                      strokeWidth="2"
-                    />
-                  )
-                })}
-              </svg>
-            </div>
-          </div>
-
-          {/* Data Summary */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="p-3 bg-muted/30 rounded-lg text-center">
-              <div className="text-2xl font-bold text-primary">{trialHistory.length}</div>
-              <div className="text-sm text-muted-foreground">Total Trials</div>
-            </div>
-            <div className="p-3 bg-muted/30 rounded-lg text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {trialHistory.filter(t => t.outcome === "correct").length}
-              </div>
-              <div className="text-sm text-muted-foreground">Correct</div>
-            </div>
-            <div className="p-3 bg-muted/30 rounded-lg text-center">
-              <div className="text-2xl font-bold text-primary">
-                {Math.round((trialHistory.filter(t => t.outcome === "correct").length / trialHistory.length) * 100)}%
-              </div>
-              <div className="text-sm text-muted-foreground">Accuracy</div>
-            </div>
-          </div>
-        </>
-      ) : (
-        <div className="text-center text-muted-foreground">
-          <BarChart3 className="h-12 w-12 mx-auto mb-2 text-muted-foreground/50" />
-          <p>No data collected yet. Start recording trials to see progress.</p>
-        </div>
-      )}
-    </div>
-  ) : placeholderContent
-
-  const statsTabContent = selectedGoal ? (
-    <div className="p-4 space-y-4">
-      <h3 className="text-lg font-semibold">Session Summary</h3>
-      <div className="grid grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Total Attempts</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{currentSession?.totalAttempts || 0}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Prompt Level</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-semibold">{currentSession?.currentPrompt || "Independent"}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Correct</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{currentSession?.correctCount || 0}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Incorrect</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{currentSession?.incorrectCount || 0}</div>
-          </CardContent>
-        </Card>
-        {selectedMode === 'frequency' && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Frequency Count</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{frequencyCount}</div>
-            </CardContent>
-          </Card>
-        )}
-        {selectedMode === 'duration' && durationCurrent && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Current Duration</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">
-                {Math.floor((Date.now() - durationCurrent.start) / 1000)}s
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-      
-      {trialHistory.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-sm font-semibold">Recent Trials</h4>
-          <div className="space-y-1 max-h-32 overflow-y-auto">
-            {trialHistory.slice(-5).map((trial) => (
-              <div key={trial.id} className="flex items-center justify-between text-xs p-2 bg-muted/30 rounded">
-                <span className={trial.outcome === "correct" ? "text-green-600" : "text-red-600"}>
-                  {trial.outcome === "correct" ? "✓" : "✗"} {trial.promptLevel}
-                </span>
-                <span className="text-muted-foreground">
-                  {new Date(trial.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  ) : placeholderContent
-
-  const documentsTabContent = selectedGoal ? (
-    <div className="p-4 space-y-3 text-sm text-muted-foreground">
-      <p>Attach supporting artifacts or upload session documents.</p>
-      <Button size="sm" variant="outline" className="bg-white" onClick={() => setIsGoalModalOpen(true)}>
-        <Download className="h-4 w-4 mr-2" />
-        Upload Document
-      </Button>
-    </div>
-  ) : placeholderContent
 
   if (studentsLoading) {
     return (
@@ -895,7 +460,7 @@ function GoalDataContentInner() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-sm">Goals ({filteredGoals.length}/{mockGoals.length})</CardTitle>
+                  <CardTitle className="text-sm">Goals ({mockGoals.length}/{mockGoals.length})</CardTitle>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Button variant="ghost" size="sm">
@@ -987,16 +552,309 @@ function GoalDataContentInner() {
                       <TabsTrigger value="stats">Stats</TabsTrigger>
                     </TabsList>
                   </div>
-                  <TabsContent value="capture" className="h-full p-4">
-                    {captureTabContent}
+                  <TabsContent value="capture" className="h-full">
+                    {selectedGoal ? (
+                      <div className="space-y-4 h-full">
+                        {/* Reset Button */}
+                        <div className="flex justify-end">
+                          <Button variant="outline" size="sm" onClick={handleResetData}>
+                            <Undo className="h-4 w-4 mr-2" />
+                            Reset
+                          </Button>
+                        </div>
+
+                        {/* Data Input Area */}
+                        <div className="flex flex-col items-center space-y-4">
+                          {/* Minus Button */}
+                          <div className="w-16 h-16 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg">
+                            <Minus className="h-8 w-8 text-gray-400" />
+                          </div>
+
+                          {/* Plus Button */}
+                          <Button 
+                            size="lg" 
+                            onClick={handleAddDataPoint}
+                            className="w-20 h-20 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                          >
+                            <Plus className="h-8 w-8" />
+                          </Button>
+                        </div>
+
+
+                        {/* Interactive Metrics Collection */}
+                        {(() => {
+                          const currentGoal = mockGoals.find(g => g.id === selectedGoal);
+                          return currentGoal && (
+                            <div className="mt-6 p-4 bg-white border rounded-lg space-y-6">
+                              {/* Reset Button */}
+                              <div className="flex justify-end">
+                                <Button variant="outline" size="sm" onClick={handleResetMetrics}>
+                                  <Undo className="h-4 w-4 mr-1" />
+                                  Reset
+                                </Button>
+                              </div>
+
+                              {/* Main Action Area */}
+                              <div className="flex flex-col items-center space-y-4">
+                                {/* Dashed Square */}
+                                <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                                  <Minus className="h-6 w-6 text-gray-400" />
+                                </div>
+
+                                {/* Large Action Button */}
+                                <Button 
+                                  onClick={handleRecordCorrect}
+                                  className="w-20 h-20 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                                >
+                                  <Plus className="h-8 w-8" />
+                                </Button>
+                              </div>
+
+                              {/* Attempts Counter */}
+                              <div className="flex items-center justify-center space-x-4">
+                                <div className="flex items-center space-x-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={handleDecrementAttempt}
+                                    className="w-8 h-8 p-0"
+                                  >
+                                    -
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={handleIncrementAttempt}
+                                    className="w-8 h-8 p-0"
+                                  >
+                                    +
+                                  </Button>
+                                  <span className="text-sm font-medium">Attempts</span>
+                                </div>
+                                <div className="flex space-x-2">
+                                  <div className="bg-gray-100 rounded px-3 py-1 text-lg font-bold">
+                                    {correctCount}
+                                  </div>
+                                  <div className="bg-gray-100 rounded px-3 py-1 text-lg font-bold">
+                                    {incorrectCount}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Summary */}
+                              <div className="text-center space-y-2">
+                                <div className="text-sm font-medium">
+                                  {attemptCount} Attempts • {promptCount} Prompts
+                                </div>
+                                <Button 
+                                  onClick={handleSaveMetrics}
+                                  className="bg-pink-500 hover:bg-pink-600"
+                                  size="sm"
+                                >
+                                  Save Metrics
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <Bookmark className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Select a Goal</h3>
+                        <p className="text-gray-600">Choose a goal from the sidebar to start data collection.</p>
+                      </div>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="graph" className="h-full">
-                    {graphTabContent}
+                    {selectedGoal ? (
+                      <div className="space-y-4 h-full">
+                        {/* Graph Header */}
+                        <div className="flex justify-between items-center">
+                          <h3 className="text-lg font-semibold">Progress Graph</h3>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm text-muted-foreground">Data Points: {graphData.length}</span>
+                            <Button variant="outline" size="sm" onClick={handleAddDataPoint}>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Point
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Simple Line Chart */}
+                        <div className="flex-1 bg-white border rounded-lg p-4 overflow-hidden">
+                          <div className="h-64 relative overflow-hidden">
+                            <svg width="100%" height="100%" className="overflow-hidden" viewBox="0 0 400 250" preserveAspectRatio="xMidYMid meet">
+                              {/* Grid lines */}
+                              <defs>
+                                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f3f4f6" strokeWidth="1"/>
+                                </pattern>
+                              </defs>
+                              <rect width="100%" height="100%" fill="url(#grid)" />
+                              
+                              {/* Y-axis labels */}
+                              {[0, 2, 4, 6, 8, 10].map((value) => (
+                                <text
+                                  key={value}
+                                  x="20"
+                                  y={220 - (value * 18)}
+                                  className="text-xs fill-gray-500"
+                                >
+                                  {value}
+                                </text>
+                              ))}
+                              
+                              {/* X-axis labels */}
+                              {graphData.map((point, index) => (
+                                <text
+                                  key={index}
+                                  x={60 + (index * 30)}
+                                  y="240"
+                                  className="text-xs fill-gray-500"
+                                  textAnchor="middle"
+                                >
+                                  T{point.trial}
+                                </text>
+                              ))}
+                              
+                              {/* Line chart */}
+                              <polyline
+                                fill="none"
+                                stroke="#ec4899"
+                                strokeWidth="3"
+                                points={graphData.map((point, index) => 
+                                  `${60 + (index * 30)},${220 - (point.score * 18)}`
+                                ).join(' ')}
+                              />
+                              
+                              {/* Data points */}
+                              {graphData.map((point, index) => (
+                                <circle
+                                  key={index}
+                                  cx={60 + (index * 30)}
+                                  cy={220 - (point.score * 18)}
+                                  r="4"
+                                  fill="#ec4899"
+                                  stroke="white"
+                                  strokeWidth="2"
+                                />
+                              ))}
+                            </svg>
+                          </div>
+                        </div>
+
+                        {/* Data Summary */}
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="p-3 bg-muted/30 rounded-lg text-center">
+                            <div className="text-2xl font-bold text-primary">{graphData.length}</div>
+                            <div className="text-sm text-muted-foreground">Trials</div>
+                          </div>
+                          <div className="p-3 bg-muted/30 rounded-lg text-center">
+                            <div className="text-2xl font-bold text-primary">
+                              {graphData.length > 0 ? Math.round(graphData.reduce((sum, point) => sum + point.score, 0) / graphData.length * 10) / 10 : 0}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Average</div>
+                          </div>
+                          <div className="p-3 bg-muted/30 rounded-lg text-center">
+                            <div className="text-2xl font-bold text-primary">
+                              {graphData.length > 0 ? Math.max(...graphData.map(p => p.score)) : 0}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Best Score</div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <Bookmark className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Select a Goal</h3>
+                        <p className="text-gray-600">Choose a goal from the sidebar to view progress graph.</p>
+                      </div>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="stats" className="h-full">
-                    {statsTabContent}
+                    {selectedGoal ? (
+                      <div className="space-y-4 h-full">
+                        <h3 className="text-lg font-semibold">Statistics</h3>
+                        
+                        {/* Stats Cards */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="p-4 bg-muted/30 rounded-lg">
+                            <h4 className="font-medium mb-2">Performance Trends</h4>
+                            <div className="space-y-2">
+                              <div className="flex justify-between">
+                                <span className="text-sm text-muted-foreground">Total Trials:</span>
+                                <span className="font-medium">{graphData.length}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-muted-foreground">Average Score:</span>
+                                <span className="font-medium">
+                                  {graphData.length > 0 ? Math.round(graphData.reduce((sum, point) => sum + point.score, 0) / graphData.length * 10) / 10 : 0}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-muted-foreground">Highest Score:</span>
+                                <span className="font-medium">{graphData.length > 0 ? Math.max(...graphData.map(p => p.score)) : 0}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-muted-foreground">Lowest Score:</span>
+                                <span className="font-medium">{graphData.length > 0 ? Math.min(...graphData.map(p => p.score)) : 0}</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="p-4 bg-muted/30 rounded-lg">
+                            <h4 className="font-medium mb-2">Progress Analysis</h4>
+                            <div className="space-y-2">
+                              <div className="flex justify-between">
+                                <span className="text-sm text-muted-foreground">Improvement:</span>
+                                <span className="font-medium text-green-600">
+                                  {graphData.length > 1 ? 
+                                    (graphData[graphData.length - 1].score > graphData[0].score ? '+' : '') + 
+                                    (graphData[graphData.length - 1].score - graphData[0].score) : 0}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-muted-foreground">Consistency:</span>
+                                <span className="font-medium">
+                                  {graphData.length > 1 ? 
+                                    Math.round((1 - (Math.max(...graphData.map(p => p.score)) - Math.min(...graphData.map(p => p.score))) / 10) * 100) + '%' : 'N/A'}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-muted-foreground">Target Met:</span>
+                                <span className="font-medium text-green-600">
+                                  {graphData.length > 0 ? 
+                                    Math.round((graphData.filter(p => p.score >= 8).length / graphData.length) * 100) + '%' : '0%'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Recent Data Table */}
+                        <div className="p-4 bg-muted/30 rounded-lg">
+                          <h4 className="font-medium mb-3">Recent Data Points</h4>
+                          <div className="space-y-2">
+                            {graphData.slice(-5).map((point, index) => (
+                              <div key={index} className="flex justify-between items-center p-2 bg-white rounded border">
+                                <span className="text-sm">Trial {point.trial}</span>
+                                <span className="text-sm font-medium">{point.score}/10</span>
+                                <span className="text-xs text-muted-foreground">{point.date}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <Bookmark className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Select a Goal</h3>
+                        <p className="text-gray-600">Choose a goal from the sidebar to view statistics.</p>
+                      </div>
+                    )}
                   </TabsContent>
                 </Tabs>
               </div>
@@ -1294,7 +1152,7 @@ function GoalDataContentInner() {
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Data Types</h3>
                   <div className="space-y-2">
-                    {dataModes.map((dataType) => {
+                    {dataTypes.map((dataType) => {
                       const Icon = dataType.icon
                       return (
                         <div

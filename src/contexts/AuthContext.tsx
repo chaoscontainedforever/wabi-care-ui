@@ -17,24 +17,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Get initial session
+    let timeout: NodeJS.Timeout
+    let subscription: any
+
+    // Get initial session with a shorter timeout
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
-      setLoading(false)
+      try {
+        // Set a very short timeout for the initial session check
+        const sessionPromise = supabase.auth.getSession()
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session timeout')), 2000)
+        )
+        
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any
+        setUser(session?.user ?? null)
+        setLoading(false)
+      } catch (error) {
+        console.error('Error getting initial session:', error)
+        setLoading(false)
+      }
     }
 
     getInitialSession()
 
+    // Add a shorter timeout to prevent infinite loading
+    timeout = setTimeout(() => {
+      console.log('Auth timeout reached, setting loading to false')
+      setLoading(false)
+    }, 3000) // 3 second timeout
+
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id)
         setUser(session?.user ?? null)
         setLoading(false)
+        if (timeout) clearTimeout(timeout)
       }
     )
 
-    return () => subscription.unsubscribe()
+    subscription = authSubscription
+
+    return () => {
+      if (subscription) subscription.unsubscribe()
+      if (timeout) clearTimeout(timeout)
+    }
   }, [])
 
   const signOut = async () => {
