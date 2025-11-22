@@ -150,21 +150,21 @@ function DashboardContent() {
   }
 
   return (
-    <div className="flex-1 p-6 space-y-6">
+    <div className="w-full space-y-4 dashboard-gradient-theme">
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, index) => {
           const Icon = stat.icon
           return (
             <Card key={index} className="hover:scale-105 transition-all duration-200 cursor-pointer group">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                   {stat.title}
                 </CardTitle>
                 <Icon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+              <CardContent className="pt-2">
+                <div className="text-xl sm:text-2xl font-bold text-foreground">{stat.value}</div>
                 <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                   {stat.changeType === "positive" ? (
                     <ArrowUpRight className="h-3 w-3 text-green-600" />
@@ -184,7 +184,7 @@ function DashboardContent() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Recent Students */}
         <Card className="lg:col-span-2" noHover>
           <CardHeader>

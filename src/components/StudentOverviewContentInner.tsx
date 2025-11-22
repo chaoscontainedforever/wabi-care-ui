@@ -138,8 +138,10 @@ function StudentOverviewContentInner() {
                 />
                 <span className="absolute right-2 top-2.5 text-xs text-muted-foreground">⌘K</span>
               </div>
-              <Button className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow hover:shadow-lg hover:scale-105 transform mb-4">
-                <Plus className="mr-2 h-4 w-4" /> Add Student
+              <Button className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow hover:shadow-lg hover:scale-105 transform mb-4"
+                onClick={handleAddStudent}
+              >
+                <Plus className="mr-2 h-4 w-4" /> Student Intake
               </Button>
               <div className="space-y-2">
                 {filteredStudents.map(student => (

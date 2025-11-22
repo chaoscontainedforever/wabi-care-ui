@@ -6,10 +6,10 @@ import { usePathname, useRouter } from "next/navigation"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useAuth } from "@/contexts/AuthContext"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import { 
-  Users, 
-  Target, 
-  BarChart3, 
+import {
+  Users,
+  Target,
+  BarChart3,
   Settings,
   ClipboardList,
   TrendingUp,
@@ -19,9 +19,7 @@ import {
   Home,
   ChevronDown,
   ChevronRight,
-  Menu,
-  LogOut,
-  User
+  Menu
 } from "lucide-react"
 
 import {
@@ -34,13 +32,12 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 // Wabi Care navigation data for special education platform
 const roleNavigationMap: Record<string, string[]> = {
   RBT: ["Students", "Data Collection", "Scheduling"],
   BCBA: ["Students", "Data Collection", "Scheduling"],
-  Administrator: ["Students", "Scheduling", "Smart Billing"],
+  Administrator: ["Students", "Scheduling"],
   Parent: ["Scheduling", "Data Collection"],
 }
 
@@ -53,50 +50,23 @@ const navigationData = {
     },
     {
       title: "Students",
-      url: "/students",
+      url: "/student-overview",
       icon: Users,
-      items: [
-        { title: "Student Intake", url: "/students/new" },
-        { title: "All Students", url: "/students" },
-        { title: "Student Overview", url: "/student-overview" },
-      ],
     },
     {
       title: "Data Collection",
-      url: "/goal-data",
+      url: "/goal-data-2",
       icon: ClipboardList,
-      items: [
-        { title: "Goal Data", url: "/goal-data" },
-        { title: "Session Reporting", url: "/session-reporting" },
-        { title: "Goal Bank", url: "/iep-goals" },
-        { title: "Form Bank", url: "/form-bank" },
-      ],
-    },
-    {
-      title: "Smart Billing",
-      url: "/billing",
-      icon: Receipt,
-      items: [
-        { title: "Dashboard", url: "/billing" },
-        { title: "Claim Audit", url: "/billing/claim-audit" },
-      ],
     },
     {
       title: "Scheduling",
-      url: "/scheduling",
+      url: "/calendar",
       icon: CalendarClock,
-      items: [
-        { title: "Dashboard", url: "/scheduling" },
-        { title: "Calendar", url: "/calendar" },
-      ],
     },
     {
       title: "IEP Management",
-      url: "/iep",
+      url: "/iep-review",
       icon: Target,
-      items: [
-        { title: "IEP Review", url: "/iep-review" },
-      ],
     },
   ],
   reportsAndTools: [
@@ -104,12 +74,6 @@ const navigationData = {
       title: "Reports",
       url: "/reports",
       icon: BarChart3,
-      items: [
-        { title: "Student Progress", url: "/reports/progress" },
-        { title: "Assessment Results", url: "/reports/assessments" },
-        { title: "IEP Compliance", url: "/reports/compliance" },
-        { title: "Analytics Dashboard", url: "/reports/analytics" },
-      ],
     },
     {
       title: "Tasks",
@@ -120,17 +84,12 @@ const navigationData = {
       title: "Settings",
       url: "/settings",
       icon: Settings,
-      items: [
-        { title: "School Settings", url: "/settings/school" },
-        { title: "User Management", url: "/settings/users" },
-        { title: "Data Import", url: "/settings/import" },
-      ],
     },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
+  const [expandedItems, setExpandedItems] = useState<string[]>([])
   const [navSections, setNavSections] = useState<string[] | null>(null)
   const [loadingPersona, setLoadingPersona] = useState(false)
   const [personaLabel, setPersonaLabel] = useState<string | null>(null)
@@ -138,7 +97,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
   const router = useRouter()
   const isMobile = useIsMobile()
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
+
+
 
   useEffect(() => {
     if (!user?.email) {
@@ -280,8 +241,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     if (parentCategory) {
       setExpandedItems(prev => {
         // Only update if the parent category is not already expanded
-        if (!prev.has(parentCategory)) {
-          return new Set([...prev, parentCategory])
+        if (!prev.includes(parentCategory)) {
+          return [...prev, parentCategory]
         }
         return prev
       })
@@ -290,13 +251,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const toggleExpanded = useCallback((title: string) => {
     setExpandedItems(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(title)) {
-        newSet.delete(title)
+      if (prev.includes(title)) {
+        return prev.filter(item => item !== title)
       } else {
-        newSet.add(title)
+        return [...prev, title]
       }
-      return newSet
     })
   }, [])
 
@@ -321,80 +280,36 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
 
   return (
-    <Sidebar variant="floating" collapsible="icon" {...props}>
-      <SidebarHeader>
-        <SidebarMenu className={`${state === "expanded" ? "" : "flex items-center flex-col"}`}>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" onClick={() => handleNavigation("/dashboard")}>
-              <div className={`flex items-center ${state === "expanded" ? "gap-3" : "justify-center"}`}>
-                <div className="flex aspect-square size-6 items-center justify-center">
-                  {/* Incomplete circle logo with primary gradient */}
-                  <svg 
-                    width="24" 
-                    height="24" 
-                    viewBox="0 0 24 24" 
-                    className="size-6"
-                  >
-                    <defs>
-                      <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#ec4899" />
-                        <stop offset="100%" stopColor="#9333ea" />
-                      </linearGradient>
-                    </defs>
-                    <circle 
-                      cx="12" 
-                      cy="12" 
-                      r="10" 
-                      fill="none" 
-                      stroke="url(#logoGradient)" 
-                      strokeWidth="2.5"
-                      strokeDasharray="20 4"
-                      strokeLinecap="round"
-                      transform="rotate(-90 12 12)"
-                    />
-                  </svg>
-                </div>
-                {state === "expanded" && (
-                  <div className="flex flex-col gap-0.5 leading-none">
-                    <span className="font-semibold text-lg bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">Wabi Care</span>
-                  </div>
-                )}
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-
-      {/* Separator line between logo and navigation */}
-      <div className="px-2">
-        <div className="h-px bg-sidebar-border"></div>
-      </div>
-      
-      <SidebarContent className={`${state === "expanded" ? "px-2" : "px-2"}`}>
+    <Sidebar variant="sidebar" collapsible="icon" {...props}>
+      {/* No header - logo moved to top navigation bar */}
+      <SidebarContent className={`${state === "expanded" ? "px-6 pt-20" : "px-0 pt-20"}`}>
         {/* Platform Section */}
         <SidebarGroup>
           {state === "expanded" && (
-            <div className="px-3 py-2">
-              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Platform</h3>
+            <div className="px-0 py-1.5">
+              <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Platform</h3>
             </div>
           )}
-          <SidebarMenu className={`gap-1 ${state === "expanded" ? "" : "flex items-center flex-col"}`}>
+          <SidebarMenu className={`gap-1 ${state === "expanded" ? "" : "flex items-center flex-col justify-center"}`}>
             {loadingPersona && memoizedData.platform.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-muted-foreground">Loading navigation…</div>
+              <div className="px-0 py-2 text-xs text-muted-foreground">Loading navigation…</div>
             ) : memoizedData.platform.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-muted-foreground">No sections assigned</div>
+              <div className="px-0 py-2 text-xs text-muted-foreground">No sections assigned</div>
             ) : memoizedData.platform.map((item) => {
               const Icon = item.icon
-              const isExpanded = expandedItems.has(item.title)
+              const isExpanded = expandedItems.includes(item.title)
               const hasItems = item.items && item.items.length > 0
               
               return (
-                <div key={`platform-${item.title}`}>
-                  <SidebarMenuItem>
+                <React.Fragment key={`platform-${item.title}`}>
+                  <SidebarMenuItem className={state === "collapsed" ? "flex justify-center" : ""}>
                     <SidebarMenuButton 
+                      type="button"
                       isActive={hasItems ? isParentActive(item.url) : isActive(item.url)}
-                      className={`h-9 ${state === "expanded" ? "w-full justify-between px-3 py-2" : "w-8 mx-auto justify-center py-2"}`}
-                      onClick={() => {
+                      className={`h-8 ${state === "expanded" ? "w-full justify-between px-0 py-1.5" : "w-8 mx-auto justify-center items-center py-1.5"}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        e.preventDefault()
                         if (hasItems) {
                           toggleExpanded(item.title)
                         } else {
@@ -403,12 +318,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       }}
                     >
                       {hasItems ? (
-                        <div className={`flex items-center w-full ${state === "expanded" ? "gap-3" : "justify-center"} ${isActive(item.url) ? "text-accent-foreground" : ""}`}>
-                          <Icon className="size-4 flex-shrink-0" />
+                        <div className={`flex items-center w-full ${state === "expanded" ? "gap-3" : "justify-center"} ${isActive(item.url) ? "text-accent-foreground" : ""} pointer-events-none`}>
+                          <Icon className="size-4 flex-shrink-0 pointer-events-none" />
                           {state === "expanded" && (
                             <>
-                              <span className="font-medium flex-1 text-left">{item.title}</span>
-                              <div className="p-1 flex-shrink-0">
+                              <span className="font-medium flex-1 text-left text-sm leading-tight pointer-events-none">{item.title}</span>
+                              <div className="p-1 flex-shrink-0 pointer-events-none">
                                 {isExpanded ? (
                                   <ChevronDown className="size-3" />
                                 ) : (
@@ -420,14 +335,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         </div>
                       ) : (
                         <div 
-                          className={`flex items-center ${state === "expanded" ? "gap-3" : "justify-center"} ${isActive(item.url) ? "text-accent-foreground" : ""}`}
-                          onClick={() => handleNavigation(item.url)}
+                          className={`flex items-center w-full ${state === "expanded" ? "gap-3" : "justify-center"} ${isActive(item.url) ? "text-accent-foreground" : ""} pointer-events-none`}
                         >
-                          <Icon className="size-4 flex-shrink-0" />
+                          <Icon className="size-4 flex-shrink-0 pointer-events-none" />
                           {state === "expanded" && (
                             <>
-                              <span className="font-medium flex-1 text-left">{item.title}</span>
-                              <div className="w-6 h-6 flex-shrink-0"></div>
+                              <span className="font-medium flex-1 text-left text-sm leading-tight pointer-events-none">{item.title}</span>
+                              <div className="w-6 h-6 flex-shrink-0 pointer-events-none"></div>
                             </>
                           )}
                         </div>
@@ -436,15 +350,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </SidebarMenuItem>
                   
                   {hasItems && isExpanded && state === "expanded" && (
-                    <div className="ml-4 border-l border-gray-200 pl-4 space-y-1">
+                    <div className="ml-4 border-l border-gray-200 pl-4 space-y-1 mt-1">
                       {item.items!.map((subItem) => (
                         <SidebarMenuItem key={`${item.title}-${subItem.title}`}>
                           <SidebarMenuButton 
-                            onClick={() => handleNavigation(subItem.url)}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              e.preventDefault()
+                              handleNavigation(subItem.url)
+                            }}
                             isActive={isActive(subItem.url)}
-                            className="w-full px-3 py-1.5 h-8 text-sm cursor-pointer"
+                            className="w-full px-0 py-1 h-7 text-sm cursor-pointer"
                           >
-                            <span className="text-muted-foreground hover:text-foreground">
+                            <span className="text-sidebar-foreground font-medium hover:text-foreground leading-normal pointer-events-none">
                               {subItem.title}
                             </span>
                           </SidebarMenuButton>
@@ -452,7 +371,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       ))}
                     </div>
                   )}
-                </div>
+                </React.Fragment>
               )
             })}
           </SidebarMenu>
@@ -461,27 +380,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* Reports & Tools Section */}
         <SidebarGroup className="mt-6">
           {state === "expanded" && (
-            <div className="px-3 py-2">
-              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Reports & Tools</h3>
+            <div className="px-3 py-1.5">
+              <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Reports & Tools</h3>
             </div>
           )}
-          <SidebarMenu className={`gap-1 ${state === "expanded" ? "" : "flex items-center flex-col"}`}>
+          <SidebarMenu className={`gap-1 ${state === "expanded" ? "" : "flex items-center flex-col justify-center"}`}>
             {loadingPersona && memoizedData.reportsAndTools.length === 0 ? (
               <div className="px-3 py-2 text-xs text-muted-foreground">Loading navigation…</div>
             ) : memoizedData.reportsAndTools.length === 0 ? (
               <div className="px-3 py-2 text-xs text-muted-foreground">No sections assigned</div>
             ) : memoizedData.reportsAndTools.map((item) => {
               const Icon = item.icon
-              const isExpanded = expandedItems.has(item.title)
+              const isExpanded = expandedItems.includes(item.title)
               const hasItems = item.items && item.items.length > 0
               
               return (
-                <div key={`reports-${item.title}`}>
-                  <SidebarMenuItem>
+                <React.Fragment key={`reports-${item.title}`}>
+                  <SidebarMenuItem className={state === "collapsed" ? "flex justify-center" : ""}>
                     <SidebarMenuButton 
+                      type="button"
                       isActive={hasItems ? isParentActive(item.url) : isActive(item.url)}
-                      className={`h-9 ${state === "expanded" ? "w-full justify-between px-3 py-2" : "w-8 mx-auto justify-center py-2"}`}
-                      onClick={() => {
+                      className={`h-8 ${state === "expanded" ? "w-full justify-between px-0 py-1.5" : "w-8 mx-auto justify-center items-center py-1.5"}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        e.preventDefault()
                         if (hasItems) {
                           toggleExpanded(item.title)
                         } else {
@@ -490,12 +412,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       }}
                     >
                       {hasItems ? (
-                        <div className={`flex items-center w-full ${state === "expanded" ? "gap-3" : "justify-center"} ${isActive(item.url) ? "text-accent-foreground" : ""}`}>
-                          <Icon className="size-4 flex-shrink-0" />
+                        <div className={`flex items-center w-full ${state === "expanded" ? "gap-3" : "justify-center"} ${isActive(item.url) ? "text-accent-foreground" : ""} pointer-events-none`}>
+                          <Icon className="size-4 flex-shrink-0 pointer-events-none" />
                           {state === "expanded" && (
                             <>
-                              <span className="font-medium flex-1 text-left">{item.title}</span>
-                              <div className="p-1 flex-shrink-0">
+                              <span className="font-medium flex-1 text-left text-sm leading-tight pointer-events-none">{item.title}</span>
+                              <div className="p-1 flex-shrink-0 pointer-events-none">
                                 {isExpanded ? (
                                   <ChevronDown className="size-3" />
                                 ) : (
@@ -507,14 +429,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         </div>
                       ) : (
                         <div 
-                          className={`flex items-center ${state === "expanded" ? "gap-3" : "justify-center"} ${isActive(item.url) ? "text-accent-foreground" : ""}`}
-                          onClick={() => handleNavigation(item.url)}
+                          className={`flex items-center w-full ${state === "expanded" ? "gap-3" : "justify-center"} ${isActive(item.url) ? "text-accent-foreground" : ""} pointer-events-none`}
                         >
-                          <Icon className="size-4 flex-shrink-0" />
+                          <Icon className="size-4 flex-shrink-0 pointer-events-none" />
                           {state === "expanded" && (
                             <>
-                              <span className="font-medium flex-1 text-left">{item.title}</span>
-                              <div className="w-6 h-6 flex-shrink-0"></div>
+                              <span className="font-medium flex-1 text-left text-sm leading-tight pointer-events-none">{item.title}</span>
+                              <div className="w-6 h-6 flex-shrink-0 pointer-events-none"></div>
                             </>
                           )}
                         </div>
@@ -523,15 +444,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </SidebarMenuItem>
                   
                   {hasItems && isExpanded && state === "expanded" && (
-                    <div className="ml-4 border-l border-gray-200 pl-4 space-y-1">
+                    <div className="ml-4 border-l border-gray-200 pl-4 space-y-1 mt-1">
                       {item.items!.map((subItem) => (
                         <SidebarMenuItem key={`${item.title}-${subItem.title}`}>
                           <SidebarMenuButton 
-                            onClick={() => handleNavigation(subItem.url)}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              e.preventDefault()
+                              handleNavigation(subItem.url)
+                            }}
                             isActive={isActive(subItem.url)}
-                            className="w-full px-3 py-1.5 h-8 text-sm cursor-pointer"
+                            className="w-full px-0 py-1 h-7 text-sm cursor-pointer"
                           >
-                            <span className="text-muted-foreground hover:text-foreground">
+                            <span className="text-sidebar-foreground font-medium hover:text-foreground leading-normal pointer-events-none">
                               {subItem.title}
                             </span>
                           </SidebarMenuButton>
@@ -539,64 +465,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       ))}
                     </div>
                   )}
-                </div>
+                </React.Fragment>
               )
             })}
           </SidebarMenu>
         </SidebarGroup>
-        
-        {/* User Profile Section at Bottom */}
-        {user && (
-          <SidebarGroup className="mt-auto">
-            <SidebarMenu>
-              {/* User Profile with Logout Icon */}
-              <SidebarMenuItem>
-                <div className={`flex items-center ${state === "expanded" ? "gap-3 px-3 py-2" : "flex-col py-2"}`}>
-                  {/* Profile Section - Clickable */}
-                  <div 
-                    className={`flex items-center cursor-pointer hover:bg-sidebar-accent rounded-md transition-colors ${state === "expanded" ? "flex-1 gap-3" : "justify-center"}`}
-                    onClick={() => handleNavigation("/profile")}
-                  >
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage 
-                        src={user.user_metadata?.avatar_url || user.user_metadata?.picture} 
-                        alt={user.user_metadata?.full_name || user.email || "User"}
-                      />
-                      <AvatarFallback className="bg-gradient-to-r from-pink-500 to-purple-600 text-white text-sm font-medium">
-                        {user.user_metadata?.full_name 
-                          ? user.user_metadata.full_name.split(' ').map(n => n[0]).join('')
-                          : user.email?.[0]?.toUpperCase() || 'U'
-                        }
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    {state === "expanded" && (
-                      <div className="flex flex-col min-w-0 flex-1">
-                        <span className="text-sm font-medium text-foreground truncate">
-                          {user.user_metadata?.full_name || user.email?.split('@')[0] || "User"}
-                        </span>
-                         <span className="text-xs text-muted-foreground truncate">
-                           {personaLabel ?? "Member"}
-                         </span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Logout Icon */}
-                  <SidebarMenuButton 
-                    onClick={async () => {
-                      await signOut()
-                      router.push("/login")
-                    }}
-                    className={`h-8 w-8 p-0 hover:bg-sidebar-accent ${state === "expanded" ? "" : "mx-auto"}`}
-                  >
-                    <LogOut className="size-4 flex-shrink-0" />
-                  </SidebarMenuButton>
-                </div>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-        )}
       </SidebarContent>
     </Sidebar>
   )

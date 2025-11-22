@@ -9,12 +9,15 @@ export default function LayoutContent({ children }: { children: React.ReactNode 
   return (
     <>
       {children}
-      <ChatAssistantCard
-        isExpanded={isExpanded}
-        onToggle={toggleChat}
-        width={width}
-        onWidthChange={setWidth}
-      />
+      {/* Chat Assistant as side panel when expanded */}
+      {isExpanded && (
+        <ChatAssistantCard
+          isExpanded={isExpanded}
+          onToggle={toggleChat}
+          width={width}
+          onWidthChange={setWidth}
+        />
+      )}
     </>
   );
 }

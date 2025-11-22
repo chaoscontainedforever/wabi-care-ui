@@ -1,10 +1,14 @@
-import SchedulingPageClient from "@/components/scheduling/SchedulingPageClient"
+"use client"
 
-export const metadata = {
-  title: "Scheduling Assistant | Wabi Care",
-  description: "Review AI scheduling suggestions and requests."
-}
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 
-export default function SchedulingPage() {
-  return <SchedulingPageClient />
+export default function SchedulingPageClient() {
+  const router = useRouter()
+
+  useEffect(() => {
+    router.replace("/calendar")
+  }, [router])
+
+  return null
 }

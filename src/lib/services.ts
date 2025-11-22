@@ -10,6 +10,11 @@ type SessionDataPoint = Tables<'session_data_points'>
 type DocumentUpload = Tables<'document_uploads'>
 type AFLSAssessment = Tables<'afls_assessments'>
 type VBMapMilestone = Tables<'vb_mapp_milestones'>
+type BillingServiceRow = Tables<'billing_services'>
+type BillingClaimRow = Tables<'billing_claims'>
+type BillingClaimUpdate = TablesUpdate<'billing_claims'>
+type BillingAuthorizationRow = Tables<'billing_authorizations'>
+type BillingClaimStatusEventRow = Tables<'billing_claim_status_events'>
 
 type StudentInsert = TablesInsert<'students'>
 type TeacherInsert = TablesInsert<'teachers'>
@@ -19,6 +24,26 @@ type SessionDataPointInsert = TablesInsert<'session_data_points'>
 type DocumentUploadInsert = TablesInsert<'document_uploads'>
 type AFLSAssessmentInsert = TablesInsert<'afls_assessments'>
 type VBMapMilestoneInsert = TablesInsert<'vb_mapp_milestones'>
+type BillingClaimInsert = TablesInsert<'billing_claims'>
+type BillingAuthorizationInsert = TablesInsert<'billing_authorizations'>
+type BillingAuthorizationUpdate = TablesUpdate<'billing_authorizations'>
+
+export type BillingServiceDefinition = BillingServiceRow
+export type BillingClaimRecord = BillingClaimRow
+export type BillingAuthorizationRecord = BillingAuthorizationRow
+
+type BillingAuthorizationWithRelations = BillingAuthorizationRow & {
+  student?: {
+    id: string
+    name: string
+    student_id: string
+  } | null
+  service?: {
+    service_key: string
+    label: string
+    default_cpt_code: string
+  } | null
+}
 
 const PROFILE_PICTURE_POOL = [
   // Diverse children and students - real photos
@@ -288,6 +313,265 @@ export class SessionService {
     
     if (error) throw error
     return data || []
+  }
+}
+
+type BillingClaimWithRelations = BillingClaimRow & {
+  session: {
+    session_date: string
+    session_type: string | null
+    duration_minutes: number | null
+  } | null
+  student: {
+    name: string
+    student_id: string
+  } | null
+  service: {
+    service_key: string
+    label: string
+    default_cpt_code: string
+    default_duration_minutes: number
+    unit_increment_minutes: number
+    base_rate: number
+  } | null
+  status_events: BillingClaimStatusEventRow[] | null
+}
+
+const BILLING_SYNC_TTL = 1000 * 60 * 5 // 5 minutes
+let lastBillingSync = 0
+let billingSyncInFlight: Promise<void> | null = null
+
+export class BillingClaimService {
+  static async listClaims(options: { limit?: number } = {}): Promise<BillingClaimWithRelations[]> {
+    const { limit = 100 } = options
+
+    const { data, error } = await supabase
+      .from('billing_claims')
+      .select(
+        `id,
+         student_id,
+         session_id,
+         service_type,
+         cpt_code,
+         units,
+         rate,
+         amount,
+         amount_paid,
+         status,
+         notes,
+         payer_id,
+         payer_name,
+         payer_reference,
+         location,
+         submitted_at,
+         processed_at,
+         paid_at,
+         denied_at,
+         billed_at,
+         last_status_change,
+         status_reason,
+         followup_required,
+         created_at,
+         updated_at,
+         session:data_collection_sessions!billing_claims_session_id_fkey (
+           session_date,
+           session_type,
+           duration_minutes
+         ),
+         student:students!billing_claims_student_id_fkey (
+           name,
+           student_id
+         ),
+         service:billing_services!billing_claims_service_type_fkey (
+           service_key,
+           label,
+           default_cpt_code,
+           default_duration_minutes,
+           unit_increment_minutes,
+           base_rate
+        ),
+        status_events:billing_claim_status_events!billing_claim_status_events_claim_id_fkey (
+          id,
+          status,
+          event_type,
+          notes,
+          metadata,
+          created_at,
+          created_by
+        )`
+      )
+      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: false, foreignTable: 'billing_claim_status_events' })
+      .limit(limit)
+
+    if (error) throw error
+    return (data ?? []) as BillingClaimWithRelations[]
+  }
+
+  static async syncDrafts(force = false): Promise<void> {
+    const now = Date.now()
+    if (!force && billingSyncInFlight) {
+      await billingSyncInFlight
+      return
+    }
+
+    if (!force && now - lastBillingSync < BILLING_SYNC_TTL) {
+      return
+    }
+
+    billingSyncInFlight = (async () => {
+      const { data: services, error: servicesError } = await supabase
+        .from('billing_services')
+        .select('*')
+
+      if (servicesError) throw servicesError
+
+      const servicesMap = new Map<string, BillingServiceRow>()
+      for (const service of services ?? []) {
+        servicesMap.set(service.service_key, service)
+      }
+
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('data_collection_sessions')
+        .select('id, student_id, service_type, duration_minutes')
+
+      if (sessionsError) throw sessionsError
+
+      const drafts: BillingClaimInsert[] = []
+
+      for (const session of sessions ?? []) {
+        if (!session.student_id) continue
+
+        const serviceKey = session.service_type ?? 'aba_direct'
+        const service = servicesMap.get(serviceKey) ?? servicesMap.get('aba_direct')
+        if (!service) continue
+
+        const duration = session.duration_minutes ?? service.default_duration_minutes ?? 60
+        const increment = service.unit_increment_minutes ?? 30
+        const units = Math.max(1, Math.ceil(duration / increment))
+        const rate = Number(service.base_rate ?? 0)
+        const amount = Number((units * rate).toFixed(2))
+
+        drafts.push({
+          session_id: session.id,
+          student_id: session.student_id,
+          service_type: service.service_key,
+          cpt_code: service.default_cpt_code,
+          units,
+          rate,
+          amount
+        })
+      }
+
+      if (drafts.length === 0) {
+        lastBillingSync = Date.now()
+        return
+      }
+
+      const { error: upsertError } = await supabase
+        .from('billing_claims')
+        .upsert(drafts, { onConflict: 'session_id' })
+
+      if (upsertError) throw upsertError
+      lastBillingSync = Date.now()
+    })()
+
+    try {
+      await billingSyncInFlight
+    } finally {
+      billingSyncInFlight = null
+    }
+  }
+
+  static async listServices(): Promise<BillingServiceRow[]> {
+    const { data, error } = await supabase
+      .from('billing_services')
+      .select('*')
+      .order('label')
+
+    if (error) throw error
+    return data ?? []
+  }
+
+  static async getClaimById(id: string): Promise<BillingClaimRow | null> {
+    const { data, error } = await supabase
+      .from('billing_claims')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (error) throw error
+    return data ?? null
+  }
+
+  static async createClaim(payload: BillingClaimInsert): Promise<BillingClaimRow> {
+    const { data, error } = await supabase
+      .from('billing_claims')
+      .insert(payload)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  }
+
+  static async updateClaim(id: string, updates: BillingClaimUpdate): Promise<BillingClaimRow> {
+    const { data, error } = await supabase
+      .from('billing_claims')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  }
+}
+
+export class AuthorizationService {
+  static async listAuthorizations(): Promise<BillingAuthorizationWithRelations[]> {
+    const { data, error } = await supabase
+      .from('billing_authorizations')
+      .select(`
+        *,
+        student:students!billing_authorizations_student_id_fkey (
+          id,
+          name,
+          student_id
+        ),
+        service:billing_services!billing_authorizations_service_type_fkey (
+          service_key,
+          label,
+          default_cpt_code
+        )
+      `)
+      .order('expires_on', { ascending: true })
+
+    if (error) throw error
+    return (data ?? []) as BillingAuthorizationWithRelations[]
+  }
+
+  static async createAuthorization(payload: BillingAuthorizationInsert): Promise<BillingAuthorizationRow> {
+    const { data, error } = await supabase
+      .from('billing_authorizations')
+      .insert(payload)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  }
+
+  static async updateAuthorization(id: string, updates: BillingAuthorizationUpdate): Promise<BillingAuthorizationRow> {
+    const { data, error } = await supabase
+      .from('billing_authorizations')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
   }
 }
 

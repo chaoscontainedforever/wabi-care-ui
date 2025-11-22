@@ -1,18 +1,62 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { ChevronLeft, ChevronRight, Save, CheckCircle } from "lucide-react"
-import StudentInfoStep from "./StudentIntakeSteps/StudentInfoStep"
-import SupportingDocumentsStep from "./StudentIntakeSteps/SupportingDocumentsStep"
-import AssignGoalsStep from "./StudentIntakeSteps/AssignGoalsStep"
-import RecentDrafts from "./RecentDrafts"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Save, FileText } from "lucide-react"
+import { IntakeLifecycleCard, type IntakePhase, type PhaseConfig } from "./StudentIntakeSteps/IntakeLifecycleCard"
+import { ReferralForm } from "./StudentIntakeSteps/ReferralForm"
+import { PreAuthorizationForm } from "./StudentIntakeSteps/PreAuthorizationForm"
+import { VerifyInsuranceForm } from "./StudentIntakeSteps/VerifyInsuranceForm"
+import { DiagnosisForm } from "./StudentIntakeSteps/DiagnosisForm"
+import { InitialAssessmentForm } from "./StudentIntakeSteps/InitialAssessmentForm"
+const RecentDrafts = dynamic(() => import("./RecentDrafts"), {
+  loading: () => <StepSkeleton title="Loading drafts" />,
+})
 
 interface IntakeData {
-  studentInfo: {
+  referral: {
+    referralSource: string
+    referralDate: string
+    referringPhysician: string
+    physicianPhone: string
+    referralNotes: string
+    urgentPriority: boolean
+    expectedStartDate: string
+  }
+  preAuthorization: {
+    authorizationRequired: boolean
+    authorizationType: string
+    authorizationNumber: string
+    authorizationStartDate: string
+    authorizationEndDate: string
+    serviceType: string
+    unitsRequested: string
+    unitsApproved: string
+    authorizationNotes: string
+    submittedDate: string
+    status: "pending" | "submitted" | "approved" | "denied" | "pending-review"
+  }
+  verifyInsurance: {
+    insuranceProvider: string
+    policyNumber: string
+    groupNumber: string
+    policyHolderName: string
+    policyHolderDOB: string
+    relationship: string
+    verificationStatus: "pending" | "verified" | "failed" | "needs-review"
+    verificationDate?: string
+    coverageType: string
+    copayAmount?: string
+    deductible?: string
+    authorizationRequired: boolean
+    authorizationNumber?: string
+  }
+  dataIntake: {
     firstName: string
     lastName: string
     dateOfBirth: string
@@ -25,38 +69,108 @@ interface IntakeData {
     iepDocument?: File
     iepData?: any
   }
-  supportingDocuments: {
-    documents: Array<{
-      id: string
-      name: string
-      type: string
-      source: 'upload' | 'onedrive' | 'googledrive'
-      url?: string
+  diagnosis: {
+    primaryDiagnosis: string
+    diagnosisCode: string
+    diagnosisDate: string
+    diagnosingPhysician: string
+    clinicalNotes: string
+    severity: string
+    comorbidities: string[]
+    additionalDiagnoses: Array<{
+      diagnosis: string
+      code: string
+      date: string
     }>
   }
-  goals: {
-    assignedGoals: Array<{
-      id: string
-      title: string
-      description: string
-      domain: string
-      level: string
-      target: number
-    }>
-  }
+    initialAssessment: {
+      assessmentDate: string
+      assessedBy: string
+      assessmentType: string
+      assessmentTools: string[]
+      baselineData: string
+      functionalAreas: Array<{
+        area: string
+        currentLevel: string
+        notes: string
+      }>
+      treatmentPlan: {
+        targetBehaviors: Array<{
+          behavior: string
+          frequency: string
+          intensity: string
+          context: string
+        }>
+        interventionStrategies: Array<{
+          strategy: string
+          description: string
+        }>
+        sessionFrequency: string
+        sessionDuration: string
+        location: string
+      }
+      goals: Array<{
+        goal: string
+        objective: string
+        targetDate: string
+        measurementCriteria: string
+        milestones: Array<{
+          milestone: string
+          targetDate: string
+        }>
+      }>
+      recommendations: string
+      nextSteps: string
+    }
 }
 
-const STEPS = [
-  { id: 1, title: "Student Information", description: "Basic student and parent details" },
-  { id: 2, title: "Supporting Documents", description: "Upload assessment forms and documents" },
-  { id: 3, title: "Assign Goals", description: "Set up student goals and objectives" }
+const PHASES: PhaseConfig[] = [
+  { id: "referral", label: "Referral", status: "in-progress" },
+  { id: "verify-insurance", label: "Verify Insurance", status: "pending" },
+  { id: "pre-authorization", label: "Preauthorization", status: "pending" },
+  { id: "diagnosis", label: "Diagnosis Data", status: "pending" },
+  { id: "initial-assessment", label: "Initial Assessment", status: "pending" },
 ]
 
 export default function StudentIntakeFlow() {
   const router = useRouter()
-  const [currentStep, setCurrentStep] = useState(1)
+  const [activePhase, setActivePhase] = useState<IntakePhase>("referral")
+  const [phases, setPhases] = useState<PhaseConfig[]>(PHASES)
   const [intakeData, setIntakeData] = useState<IntakeData>({
-    studentInfo: {
+    referral: {
+      referralSource: '',
+      referralDate: '',
+      referringPhysician: '',
+      physicianPhone: '',
+      referralNotes: '',
+      urgentPriority: false,
+      expectedStartDate: ''
+    },
+    preAuthorization: {
+      authorizationRequired: false,
+      authorizationType: '',
+      authorizationNumber: '',
+      authorizationStartDate: '',
+      authorizationEndDate: '',
+      serviceType: '',
+      unitsRequested: '',
+      unitsApproved: '',
+      authorizationNotes: '',
+      submittedDate: '',
+      status: "pending"
+    },
+    verifyInsurance: {
+      insuranceProvider: '',
+      policyNumber: '',
+      groupNumber: '',
+      policyHolderName: '',
+      policyHolderDOB: '',
+      relationship: '',
+      verificationStatus: "pending",
+      coverageType: '',
+      authorizationRequired: false
+    },
+    dataIntake: {
       firstName: '',
       lastName: '',
       dateOfBirth: '',
@@ -67,15 +181,87 @@ export default function StudentIntakeFlow() {
       parentEmail: '',
       parentPhone: ''
     },
-    supportingDocuments: {
-      documents: []
+    diagnosis: {
+      primaryDiagnosis: '',
+      diagnosisCode: '',
+      diagnosisDate: '',
+      diagnosingPhysician: '',
+      clinicalNotes: '',
+      severity: '',
+      comorbidities: [],
+      additionalDiagnoses: []
     },
-    goals: {
-      assignedGoals: []
+    initialAssessment: {
+      assessmentDate: '',
+      assessedBy: '',
+      assessmentType: '',
+      assessmentTools: [],
+      baselineData: '',
+      functionalAreas: [],
+      treatmentPlan: {
+        targetBehaviors: [],
+        interventionStrategies: [],
+        sessionFrequency: '',
+        sessionDuration: '',
+        location: ''
+      },
+      goals: [],
+      recommendations: '',
+      nextSteps: ''
     }
   })
   const [isDraftSaving, setIsDraftSaving] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [draftCount, setDraftCount] = useState(0)
+  const [draftsOpen, setDraftsOpen] = useState(false)
+
+  // Handle phase click
+  const handlePhaseClick = (phase: IntakePhase) => {
+    setActivePhase(phase)
+    // Update phase status to in-progress when clicked
+    setPhases(prev => prev.map(p => 
+      p.id === phase ? { ...p, status: "in-progress" as const } : p
+    ))
+  }
+
+  // Navigate to next phase
+  const goToNextPhase = () => {
+    const currentIndex = phases.findIndex(p => p.id === activePhase)
+    if (currentIndex < phases.length - 1) {
+      // Mark current phase as completed
+      setPhases(prev => prev.map(p => 
+        p.id === activePhase ? { ...p, status: "completed" as const } : p
+      ))
+      
+      // Move to next phase
+      const nextPhase = phases[currentIndex + 1].id
+      setActivePhase(nextPhase as IntakePhase)
+      setPhases(prev => prev.map(p => 
+        p.id === nextPhase ? { ...p, status: "in-progress" as const } : p
+      ))
+    }
+  }
+
+  // Mark phase as completed
+  const markPhaseComplete = (phase: IntakePhase) => {
+    setPhases(prev => {
+      const updated = prev.map(p => 
+        p.id === phase ? { ...p, status: "completed" as const } : p
+      )
+      // Auto-advance to next phase if available
+      const currentIndex = updated.findIndex(p => p.id === phase)
+      if (currentIndex < updated.length - 1 && updated[currentIndex + 1].status === "pending") {
+        const nextPhase = updated[currentIndex + 1].id
+        setTimeout(() => {
+          setActivePhase(nextPhase as IntakePhase)
+          setPhases(currentPhases => currentPhases.map(p => 
+            p.id === nextPhase ? { ...p, status: "in-progress" as const } : p
+          ))
+        }, 0)
+      }
+      return updated
+    })
+  }
 
   // Save draft data
   const saveDraft = async () => {
@@ -83,16 +269,15 @@ export default function StudentIntakeFlow() {
     try {
       // Create draft object
       const draftId = `draft-${Date.now()}`
-      const studentName = `${intakeData.studentInfo.firstName} ${intakeData.studentInfo.lastName}`.trim() || 'Unnamed Student'
+      const studentName = 'Student Intake Draft' // Will be updated when student info is collected in later phases
       
       const draft = {
         id: draftId,
         studentName,
         createdAt: new Date().toISOString(),
         lastModified: new Date().toISOString(),
-        currentStep,
-        totalSteps: STEPS.length,
-        progress: Math.round((currentStep / STEPS.length) * 100),
+        activePhase,
+        progress: Math.round((phases.filter(p => p.status === "completed").length / phases.length) * 100),
         ...intakeData
       }
 
@@ -109,6 +294,7 @@ export default function StudentIntakeFlow() {
 
       // Save to localStorage
       localStorage.setItem('studentIntakeDrafts', JSON.stringify(existingDrafts))
+      setDraftCount(existingDrafts.length)
       
       // Mock API call delay
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -135,7 +321,8 @@ export default function StudentIntakeFlow() {
           const draft = drafts.find((d: any) => d.id === currentDraftId)
           if (draft) {
             setIntakeData(draft)
-            setCurrentStep(draft.currentStep)
+            setActivePhase(draft.activePhase || "pre-authorization")
+            setPhases(draft.phases || PHASES)
           }
         } catch (error) {
           console.error('Failed to load specific draft:', error)
@@ -149,7 +336,14 @@ export default function StudentIntakeFlow() {
       if (savedDraft) {
         try {
           const parsedDraft = JSON.parse(savedDraft)
-          setIntakeData(parsedDraft)
+          if (parsedDraft.intakeData) {
+            setIntakeData(parsedDraft.intakeData)
+            setActivePhase(parsedDraft.activePhase || "referral")
+            setPhases(parsedDraft.phases || PHASES)
+          } else {
+            // Legacy format support
+            setIntakeData(parsedDraft)
+          }
         } catch (error) {
           console.error('Failed to parse saved draft:', error)
         }
@@ -161,11 +355,11 @@ export default function StudentIntakeFlow() {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       // Save to general draft storage
-      localStorage.setItem('studentIntakeDraft', JSON.stringify(intakeData))
+      localStorage.setItem('studentIntakeDraft', JSON.stringify({ intakeData, activePhase, phases }))
       
-      // Also update drafts list if we have student name
-      const studentName = `${intakeData.studentInfo.firstName} ${intakeData.studentInfo.lastName}`.trim()
-      if (studentName && studentName !== ' ') {
+      // Auto-save draft - student name will be added later when collected
+      const studentName = 'Student Intake Draft'
+      if (studentName && studentName.length > 0) {
         const existingDrafts = JSON.parse(localStorage.getItem('studentIntakeDrafts') || '[]')
         const draftIndex = existingDrafts.findIndex((d: any) => d.studentName === studentName)
         
@@ -174,8 +368,9 @@ export default function StudentIntakeFlow() {
           existingDrafts[draftIndex] = {
             ...existingDrafts[draftIndex],
             lastModified: new Date().toISOString(),
-            currentStep,
-            progress: Math.round((currentStep / STEPS.length) * 100),
+            activePhase,
+            progress: Math.round((phases.filter(p => p.status === "completed").length / phases.length) * 100),
+            phases,
             ...intakeData
           }
           localStorage.setItem('studentIntakeDrafts', JSON.stringify(existingDrafts))
@@ -184,22 +379,15 @@ export default function StudentIntakeFlow() {
     }, 2000)
     
     return () => clearTimeout(timeoutId)
-  }, [intakeData, currentStep])
+  }, [intakeData, activePhase, phases])
 
-  const updateIntakeData = (stepData: Partial<IntakeData>) => {
-    setIntakeData(prev => ({ ...prev, ...stepData }))
-  }
+  useEffect(() => {
+    const drafts = JSON.parse(localStorage.getItem('studentIntakeDrafts') || '[]')
+    setDraftCount(drafts.length)
+  }, [refreshTrigger])
 
-  const nextStep = () => {
-    if (currentStep < STEPS.length) {
-      setCurrentStep(currentStep + 1)
-    }
-  }
-
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
-    }
+  const updateIntakeData = (phaseData: Partial<IntakeData>) => {
+    setIntakeData(prev => ({ ...prev, ...phaseData }))
   }
 
   const completeIntake = async () => {
@@ -217,37 +405,63 @@ export default function StudentIntakeFlow() {
     }
   }
 
-  const handleContinueDraft = (draftId: string) => {
-    // Set the draft ID in localStorage for the intake flow to load
-    localStorage.setItem('currentDraftId', draftId)
-    // Reload the page to load the draft
-    window.location.reload()
+  const loadDraftManagement = () => {
+    setDraftsOpen(true)
   }
 
-  const progressPercentage = (currentStep / STEPS.length) * 100
+  const handleContinueDraft = (draftId: string) => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('studentIntakeDrafts') || '[]')
+      const draft = stored.find((d: any) => d.id === draftId)
+      if (!draft) return
+      setIntakeData(draft)
+      setActivePhase(draft.activePhase || "referral")
+      setPhases(draft.phases || PHASES)
+      setDraftsOpen(false)
+    } catch (error) {
+      console.error('Failed to continue draft:', error)
+    }
+  }
 
-  const renderCurrentStep = () => {
-    switch (currentStep) {
-      case 1:
+  const renderCurrentPhaseForm = () => {
+    switch (activePhase) {
+      case "referral":
         return (
-          <StudentInfoStep
-            data={intakeData.studentInfo}
-            onUpdate={(data) => updateIntakeData({ studentInfo: data })}
+          <ReferralForm
+            data={intakeData.referral}
+            onUpdate={(data) => updateIntakeData({ referral: data })}
+            onNext={goToNextPhase}
           />
         )
-      case 2:
+      case "verify-insurance":
         return (
-          <SupportingDocumentsStep
-            data={intakeData.supportingDocuments}
-            onUpdate={(data) => updateIntakeData({ supportingDocuments: data })}
+          <VerifyInsuranceForm
+            data={intakeData.verifyInsurance}
+            onUpdate={(data) => updateIntakeData({ verifyInsurance: data })}
+            onNext={goToNextPhase}
           />
         )
-      case 3:
+      case "pre-authorization":
         return (
-          <AssignGoalsStep
-            data={intakeData.goals}
-            studentInfo={intakeData.studentInfo}
-            onUpdate={(data) => updateIntakeData({ goals: data })}
+          <PreAuthorizationForm
+            data={intakeData.preAuthorization}
+            onUpdate={(data) => updateIntakeData({ preAuthorization: data })}
+            onNext={goToNextPhase}
+          />
+        )
+      case "diagnosis":
+        return (
+          <DiagnosisForm
+            data={intakeData.diagnosis}
+            onUpdate={(data) => updateIntakeData({ diagnosis: data })}
+            onNext={goToNextPhase}
+          />
+        )
+      case "initial-assessment":
+        return (
+          <InitialAssessmentForm
+            data={intakeData.initialAssessment}
+            onUpdate={(data) => updateIntakeData({ initialAssessment: data })}
           />
         )
       default:
@@ -255,117 +469,66 @@ export default function StudentIntakeFlow() {
     }
   }
 
+  const getPhaseTitle = () => {
+    const phase = phases.find(p => p.id === activePhase)
+    return phase?.label || "Student Intake"
+  }
+
   return (
-    <div className="flex-1 p-6 space-y-6">
-      {/* Header */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Student Intake</h1>
-            <p className="text-sm text-gray-600 mt-1">Create a new student profile and IEP record</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={saveDraft}
-              disabled={isDraftSaving}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {isDraftSaving ? 'Saving...' : 'Save Draft'}
-            </Button>
-          </div>
-        </div>
+    <div className="w-full space-y-6">
+      {/* Lifecycle Card */}
+      <IntakeLifecycleCard
+        phases={phases}
+        activePhase={activePhase}
+        onPhaseClick={handlePhaseClick}
+      />
 
-        {/* Progress Indicator */}
-        <div className="space-y-4">
+      {/* Phase Form Card */}
+      <Card className="shadow-sm">
+        <CardHeader className="border-b bg-muted/30">
           <div className="flex items-center justify-between">
-            {STEPS.map((step, index) => (
-              <div key={step.id} className="flex items-center">
-                <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
-                  currentStep >= step.id 
-                    ? 'bg-gradient-to-r from-pink-500 to-purple-600 border-pink-500 text-white' 
-                    : 'border-gray-300 text-gray-500'
-                }`}>
-                  {currentStep > step.id ? (
-                    <CheckCircle className="h-4 w-4" />
-                  ) : (
-                    <span className="text-sm font-medium">{step.id}</span>
-                  )}
-                </div>
-                <div className="ml-3">
-                  <p className={`text-sm font-medium ${
-                    currentStep >= step.id ? 'text-gray-900' : 'text-gray-500'
-                  }`}>
-                    {step.title}
-                  </p>
-                  <p className="text-xs text-gray-500">{step.description}</p>
-                </div>
-                {index < STEPS.length - 1 && (
-                  <div className="w-12 h-0.5 bg-gray-300 mx-4" />
-                )}
-              </div>
-            ))}
-          </div>
-          <Progress value={progressPercentage} className="h-2" />
-        </div>
-      </div>
-
-      {/* Main Content - Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Main Intake Content */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Current Step Content */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="text-lg font-semibold">{STEPS[currentStep - 1].title}</span>
-                <span className="text-sm text-gray-500">(Step {currentStep} of {STEPS.length})</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {renderCurrentStep()}
-            </CardContent>
-          </Card>
-
-          {/* Navigation */}
-          <div className="flex items-center justify-between">
-            <Button
-              variant="outline"
-              onClick={prevStep}
-              disabled={currentStep === 1}
-            >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Previous
-            </Button>
-
+            <CardTitle className="text-lg font-semibold text-foreground">{getPhaseTitle()}</CardTitle>
             <div className="flex items-center gap-2">
-              {currentStep === STEPS.length ? (
-                <Button
-                  onClick={completeIntake}
-                  className="bg-gradient-to-r from-pink-500 to-purple-600 text-white"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Complete Intake
-                </Button>
-              ) : (
-                <Button
-                  onClick={nextStep}
-                  className="bg-gradient-to-r from-pink-500 to-purple-600 text-white"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-2" />
-                </Button>
-              )}
+              <Button variant="outline" onClick={saveDraft} disabled={isDraftSaving} className="gap-2" size="sm">
+                <Save className="h-4 w-4" />
+                {isDraftSaving ? "Saving…" : "Save Draft"}
+              </Button>
+              <Button variant="ghost" className="gap-2" onClick={loadDraftManagement} size="sm">
+                <FileText className="h-4 w-4" />
+                Manage Drafts
+                {draftCount > 0 && (
+                  <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                    {draftCount}
+                  </span>
+                )}
+              </Button>
             </div>
           </div>
-        </div>
+        </CardHeader>
+        <CardContent>
+          {renderCurrentPhaseForm()}
+        </CardContent>
+      </Card>
 
-        {/* Recent Drafts Sidebar */}
-        <div className="lg:col-span-1">
+      <Dialog open={draftsOpen} onOpenChange={setDraftsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Manage Intake Drafts</DialogTitle>
+          </DialogHeader>
           <RecentDrafts onContinueDraft={handleContinueDraft} refreshTrigger={refreshTrigger} />
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+function StepSkeleton({ title }: { title: string }) {
+  return (
+    <div className="space-y-3">
+      <Skeleton className="h-4 w-48" />
+      <Skeleton className="h-4 w-56" />
+      <Skeleton className="h-40 w-full" />
+      <p className="text-sm text-muted-foreground">{title}</p>
     </div>
   )
 }

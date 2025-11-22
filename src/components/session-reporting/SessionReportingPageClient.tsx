@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useMemo } from "react"
+import dynamic from "next/dynamic"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,8 +36,15 @@ import {
   Target
 } from "lucide-react"
 import PageLayout from "@/components/PageLayout"
-import RichTextEditor from "./RichTextEditor"
-import DynamicChartEditor from "./DynamicChartEditor"
+const RichTextEditor = dynamic(() => import("./RichTextEditor"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-64 w-full rounded-lg border bg-muted animate-pulse" aria-hidden="true" />
+  ),
+})
+const DynamicChartEditor = dynamic(() => import("./DynamicChartEditor"), {
+  ssr: false,
+})
 import { useStudents } from "@/hooks/useSupabase"
 import { useGoals } from "@/hooks/useSupabase"
 

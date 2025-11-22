@@ -1,12 +1,14 @@
 "use client"
 
-import { CalendarCheck, CalendarClock, UsersRound, Cpu, Mail } from "lucide-react"
+import { CalendarCheck, CalendarClock, UsersRound, Cpu, Mail, ShieldAlert } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useSchedulingSuggestions } from "@/hooks/useScheduling"
+import { useAuthorizations } from "@/hooks/useAuthorizations"
 import { ViewMode, ViewModeToggle } from "@/components/ui/view-mode-toggle"
+import Link from "next/link"
 
 const formatTime = (iso: string | null) => {
   if (!iso) return "No upcoming sessions"
@@ -28,6 +30,7 @@ interface SchedulingDashboardHeaderProps {
 export function SchedulingDashboardHeader({ viewMode, onViewModeChange }: SchedulingDashboardHeaderProps) {
   const { schedulingOverview, loading, refresh } = useSchedulingSuggestions()
   const { totalSuggestions, upcomingWithinWeek, upcomingNext, utilization, requestsPending } = schedulingOverview
+  const { summary: authorizationSummary, loading: authLoading } = useAuthorizations()
 
   const headlineCopy = loading
     ? "Pulling the latest scheduling recommendations…"
@@ -103,6 +106,32 @@ export function SchedulingDashboardHeader({ viewMode, onViewModeChange }: Schedu
         <div className="mt-6 rounded-lg border border-dashed border-blue-200 bg-white/70 p-4 text-sm text-muted-foreground">
           <span className="font-medium text-foreground">Next suggested session:</span> {loading ? "Loading…" : formatTime(upcomingNext)}
         </div>
+        {!authLoading && (authorizationSummary.expiringSoon > 0 || authorizationSummary.lowUnits > 0 || authorizationSummary.expired > 0) ? (
+          <div className="mt-4 flex flex-col gap-2 rounded-lg border border-orange-200 bg-orange-50/80 p-4 text-sm text-orange-700">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                <ShieldAlert className="h-3 w-3 mr-1" /> Authorization Watch
+              </Badge>
+              <span>
+                {authorizationSummary.expiringSoon > 0 && `${authorizationSummary.expiringSoon} expiring soon`}
+                {authorizationSummary.expiringSoon > 0 && authorizationSummary.lowUnits > 0 ? " • " : ""}
+                {authorizationSummary.lowUnits > 0 && `${authorizationSummary.lowUnits} low on units`}
+                {(authorizationSummary.expiringSoon > 0 || authorizationSummary.lowUnits > 0) && authorizationSummary.expired > 0 ? " • " : ""}
+                {authorizationSummary.expired > 0 && `${authorizationSummary.expired} expired`}
+              </span>
+            </div>
+            <p>
+              Coordinate renewals before scheduling impacted sessions. Review details in the billing dashboard.
+            </p>
+            <div>
+              <Link href="/billing">
+                <Button size="sm" variant="outline" className="bg-white/80">
+                  View Billing Authorizations
+                </Button>
+              </Link>
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   )

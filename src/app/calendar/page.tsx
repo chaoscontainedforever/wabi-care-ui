@@ -3,12 +3,13 @@
 import { useState, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Calendar as CalendarIcon, Plus, Clock, Users, ChevronLeft, ChevronRight } from "lucide-react"
+import { Calendar as CalendarIcon, Plus, Clock, Users, ChevronLeft, ChevronRight, Sparkles } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { useSchedulingCalendar } from "@/hooks/useScheduling"
 import { format, addMonths, subMonths, isToday, isSameDay, startOfDay } from "date-fns"
 import { Badge } from "@/components/ui/badge"
 import PageLayout from "@/components/PageLayout"
+import Link from "next/link"
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -47,7 +48,13 @@ export default function CalendarPage() {
   return (
     <PageLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-2">
+          <Link href="/scheduling">
+            <Button variant="outline" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              Scheduling Assistant
+            </Button>
+          </Link>
           <Button className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700">
             <Plus className="h-4 w-4 mr-2" />
             New Session

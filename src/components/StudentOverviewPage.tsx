@@ -11,7 +11,6 @@ export function StudentOverviewPage() {
         { label: "Students", href: "/students" },
         { label: "Student Overview" }
       ]}
-      title="Student Overview"
     >
       <Suspense fallback={<div>Loading...</div>}>
         <StudentOverviewContentInner />

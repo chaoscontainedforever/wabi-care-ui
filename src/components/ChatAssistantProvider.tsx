@@ -1,6 +1,10 @@
 "use client"
 
-import { createContext, useContext, useState, ReactNode } from "react"
+import { createContext, useContext, useState, ReactNode, useCallback } from "react"
+
+interface ReportGenerator {
+  generateReport: (query: string) => { title: string; content: string } | null
+}
 
 interface ChatAssistantContextType {
   isExpanded: boolean
@@ -8,12 +12,16 @@ interface ChatAssistantContextType {
   toggleChat: () => void
   width: number
   setWidth: (width: number) => void
+  registerReportGenerator: (generator: ReportGenerator | null) => void
+  generateReportFromQuery: (query: string) => { title: string; content: string } | null
 }
 
 const ChatAssistantContext = createContext<ChatAssistantContextType | undefined>(undefined)
 
 export function ChatAssistantProvider({ children }: { children: ReactNode }) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [reportGenerator, setReportGenerator] = useState<ReportGenerator | null>(null)
+  
   // Responsive default width based on screen size
   const [width, setWidth] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -28,9 +36,20 @@ export function ChatAssistantProvider({ children }: { children: ReactNode }) {
     return 400 // Fallback for SSR
   })
 
-  const toggleChat = () => {
+  const toggleChat = useCallback(() => {
     setIsExpanded(prev => !prev)
-  }
+  }, [])
+
+  const registerReportGenerator = useCallback((generator: ReportGenerator | null) => {
+    setReportGenerator(generator)
+  }, [])
+
+  const generateReportFromQuery = useCallback((query: string) => {
+    if (reportGenerator) {
+      return reportGenerator.generateReport(query)
+    }
+    return null
+  }, [reportGenerator])
 
   return (
     <ChatAssistantContext.Provider
@@ -40,6 +59,8 @@ export function ChatAssistantProvider({ children }: { children: ReactNode }) {
         toggleChat,
         width,
         setWidth,
+        registerReportGenerator,
+        generateReportFromQuery,
       }}
     >
       {children}

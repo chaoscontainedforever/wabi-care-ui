@@ -77,12 +77,260 @@ export type Database = {
           },
         ]
       }
+      billing_authorizations: {
+        Row: {
+          authorization_number: string
+          created_at: string
+          effective_on: string
+          expires_on: string
+          id: string
+          notes: string | null
+          payer_contact: string | null
+          payer_name: string
+          service_type: string | null
+          status: string
+          student_id: string
+          total_units: number
+          updated_at: string
+        }
+        Insert: {
+          authorization_number: string
+          created_at?: string
+          effective_on: string
+          expires_on: string
+          id?: string
+          notes?: string | null
+          payer_contact?: string | null
+          payer_name: string
+          service_type?: string | null
+          status?: string
+          student_id: string
+          total_units: number
+          updated_at?: string
+        }
+        Update: {
+          authorization_number?: string
+          created_at?: string
+          effective_on?: string
+          expires_on?: string
+          id?: string
+          notes?: string | null
+          payer_contact?: string | null
+          payer_name?: string
+          service_type?: string | null
+          status?: string
+          student_id?: string
+          total_units?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_authorizations_service_type_fkey"
+            columns: ["service_type"]
+            isOneToOne: false
+            referencedRelation: "billing_services"
+            referencedColumns: ["service_key"]
+          },
+          {
+            foreignKeyName: "billing_authorizations_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_claim_status_events: {
+        Row: {
+          claim_id: string
+          created_at: string
+          created_by: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          notes: string | null
+          status: Database["public"]["Enums"]["billing_claim_status"]
+        }
+        Insert: {
+          claim_id: string
+          created_at?: string
+          created_by?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          status: Database["public"]["Enums"]["billing_claim_status"]
+        }
+        Update: {
+          claim_id?: string
+          created_at?: string
+          created_by?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["billing_claim_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_claim_status_events_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "billing_claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_claims: {
+        Row: {
+          amount: number
+          amount_paid: number
+          billed_at: string | null
+          cpt_code: string
+          created_at: string
+          denied_at: string | null
+          followup_required: boolean
+          id: string
+          last_status_change: string
+          location: string | null
+          notes: string | null
+          paid_at: string | null
+          payer_id: string | null
+          payer_name: string | null
+          payer_reference: string | null
+          processed_at: string | null
+          rate: number
+          service_type: string
+          session_id: string
+          status: Database["public"]["Enums"]["billing_claim_status"]
+          status_reason: string | null
+          student_id: string
+          submitted_at: string | null
+          units: number
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          amount_paid?: number
+          billed_at?: string | null
+          cpt_code: string
+          created_at?: string
+          denied_at?: string | null
+          followup_required?: boolean
+          id?: string
+          last_status_change?: string
+          location?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          payer_id?: string | null
+          payer_name?: string | null
+          payer_reference?: string | null
+          processed_at?: string | null
+          rate: number
+          service_type: string
+          session_id: string
+          status?: Database["public"]["Enums"]["billing_claim_status"]
+          status_reason?: string | null
+          student_id: string
+          submitted_at?: string | null
+          units: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          amount_paid?: number
+          billed_at?: string | null
+          cpt_code?: string
+          created_at?: string
+          denied_at?: string | null
+          followup_required?: boolean
+          id?: string
+          last_status_change?: string
+          location?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          payer_id?: string | null
+          payer_name?: string | null
+          payer_reference?: string | null
+          processed_at?: string | null
+          rate?: number
+          service_type?: string
+          session_id?: string
+          status?: Database["public"]["Enums"]["billing_claim_status"]
+          status_reason?: string | null
+          student_id?: string
+          submitted_at?: string | null
+          units?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_claims_service_type_fkey"
+            columns: ["service_type"]
+            isOneToOne: false
+            referencedRelation: "billing_services"
+            referencedColumns: ["service_key"]
+          },
+          {
+            foreignKeyName: "billing_claims_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "data_collection_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_claims_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_services: {
+        Row: {
+          base_rate: number
+          created_at: string
+          default_cpt_code: string
+          default_duration_minutes: number
+          id: string
+          label: string
+          service_key: string
+          unit_increment_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          base_rate: number
+          created_at?: string
+          default_cpt_code: string
+          default_duration_minutes?: number
+          id?: string
+          label: string
+          service_key: string
+          unit_increment_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          base_rate?: number
+          created_at?: string
+          default_cpt_code?: string
+          default_duration_minutes?: number
+          id?: string
+          label?: string
+          service_key?: string
+          unit_increment_minutes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       data_collection_sessions: {
         Row: {
           assessment_type: string | null
           created_at: string | null
+          duration_minutes: number
           id: string
           notes: string | null
+          service_type: string
           session_date: string
           session_type: string
           student_id: string | null
@@ -94,8 +342,10 @@ export type Database = {
         Insert: {
           assessment_type?: string | null
           created_at?: string | null
+          duration_minutes?: number
           id?: string
           notes?: string | null
+          service_type?: string
           session_date: string
           session_type: string
           student_id?: string | null
@@ -107,8 +357,10 @@ export type Database = {
         Update: {
           assessment_type?: string | null
           created_at?: string | null
+          duration_minutes?: number
           id?: string
           notes?: string | null
+          service_type?: string
           session_date?: string
           session_type?: string
           student_id?: string | null
@@ -118,6 +370,13 @@ export type Database = {
           voice_recording_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "data_collection_sessions_service_type_fkey"
+            columns: ["service_type"]
+            isOneToOne: false
+            referencedRelation: "billing_services"
+            referencedColumns: ["service_key"]
+          },
           {
             foreignKeyName: "data_collection_sessions_student_id_fkey"
             columns: ["student_id"]
@@ -381,6 +640,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_portal_roles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          nav_sections: string[]
+          persona: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          nav_sections: string[]
+          persona: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          nav_sections?: string[]
+          persona?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       vb_mapp_milestones: {
         Row: {
           created_at: string | null
@@ -484,7 +773,15 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      billing_claim_status:
+        | "draft"
+        | "pending"
+        | "ready"
+        | "submitted"
+        | "flagged"
+        | "rejected"
+        | "approved"
+        | "paid"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -611,6 +908,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      billing_claim_status: [
+        "draft",
+        "pending",
+        "ready",
+        "submitted",
+        "flagged",
+        "rejected",
+        "approved",
+        "paid",
+      ],
+    },
   },
 } as const

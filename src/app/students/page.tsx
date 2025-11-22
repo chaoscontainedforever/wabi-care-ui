@@ -1,7 +1,7 @@
 "use client"
 
-import { AllStudentsPage } from "@/components/AllStudentsPage"
+import { StudentOverviewPage } from "@/components/StudentOverviewPage"
 
 export default function Page() {
-  return <AllStudentsPage />
+  return <StudentOverviewPage />
 }

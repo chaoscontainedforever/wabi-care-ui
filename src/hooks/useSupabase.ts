@@ -2,6 +2,60 @@ import { useState, useEffect, useCallback } from 'react'
 import { StudentService, TeacherService, GoalService, SessionService, AssessmentService, VBMapMilestoneService, DocumentService } from '@/lib/services'
 import type { Database, Tables } from '@/lib/database.types'
 
+const DEFAULT_CACHE_TTL = 1000 * 60 * 2 // 2 minutes
+
+type CacheEntry<T> = {
+  data?: T
+  promise?: Promise<T>
+  timestamp: number
+}
+
+type CachedLoader<T> = {
+  load: (force?: boolean) => Promise<T>
+  set: (value: T) => void
+  clear: () => void
+}
+
+function createCachedLoader<T>(fetcher: () => Promise<T>, ttlMs = DEFAULT_CACHE_TTL): CachedLoader<T> {
+  let entry: CacheEntry<T> = { timestamp: 0 }
+
+  const load = async (force = false) => {
+    const now = Date.now()
+    if (!force && entry.data && now - entry.timestamp < ttlMs) {
+      return entry.data
+    }
+
+    if (!force && entry.promise) {
+      return entry.promise
+    }
+
+    const request = fetcher()
+      .then((data) => {
+        entry = { data, timestamp: Date.now() }
+        return data
+      })
+      .finally(() => {
+        entry.promise = undefined
+      })
+
+    entry.promise = request
+    return request
+  }
+
+  const set = (value: T) => {
+    entry = { data: value, timestamp: Date.now() }
+  }
+
+  const clear = () => {
+    entry = { timestamp: 0 }
+  }
+
+  return { load, set, clear }
+}
+
+const studentsCache = createCachedLoader(() => StudentService.getAll())
+const teachersCache = createCachedLoader(() => TeacherService.getAll())
+
 // Type aliases for easier use
 type Student = Tables<'students'>
 type Teacher = Tables<'teachers'>
@@ -18,11 +72,11 @@ export function useStudents() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchStudents = useCallback(async () => {
+  const fetchStudents = useCallback(async (force = false) => {
     try {
       setLoading(true)
       setError(null)
-      const data = await StudentService.getAll()
+      const data = await studentsCache.load(force)
       setStudents(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch students')
@@ -32,46 +86,59 @@ export function useStudents() {
   }, [])
 
   useEffect(() => {
-    fetchStudents()
+    void fetchStudents()
   }, [fetchStudents])
+
+  const syncCache = useCallback((updater: (current: Student[]) => Student[]) => {
+    setStudents((current) => {
+      const next = updater(current)
+      studentsCache.set(next)
+      return next
+    })
+  }, [])
 
   const createStudent = useCallback(async (studentData: any) => {
     try {
       const newStudent = await StudentService.create(studentData)
-      setStudents(prev => [...prev, newStudent])
+      syncCache((prev) => [...prev, newStudent])
       return newStudent
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create student')
       throw err
     }
-  }, [])
+  }, [syncCache])
 
   const updateStudent = useCallback(async (id: string, updates: any) => {
     try {
       const updatedStudent = await StudentService.update(id, updates)
-      setStudents(prev => prev.map(s => s.id === id ? updatedStudent : s))
+      syncCache((prev) => prev.map((student) => (student.id === id ? updatedStudent : student)))
       return updatedStudent
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update student')
       throw err
     }
-  }, [])
+  }, [syncCache])
 
   const deleteStudent = useCallback(async (id: string) => {
     try {
       await StudentService.delete(id)
-      setStudents(prev => prev.filter(s => s.id !== id))
+      syncCache((prev) => prev.filter((student) => student.id !== id))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete student')
       throw err
     }
-  }, [])
+  }, [syncCache])
+
+  const refetch = useCallback(async () => {
+    studentsCache.clear()
+    await fetchStudents(true)
+  }, [fetchStudents])
 
   return {
     students,
     loading,
     error,
-    refetch: fetchStudents,
+    refetch,
     createStudent,
     updateStudent,
     deleteStudent
@@ -84,11 +151,11 @@ export function useTeachers() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchTeachers = useCallback(async () => {
+  const fetchTeachers = useCallback(async (force = false) => {
     try {
       setLoading(true)
       setError(null)
-      const data = await TeacherService.getAll()
+      const data = await teachersCache.load(force)
       setTeachers(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch teachers')
@@ -98,14 +165,19 @@ export function useTeachers() {
   }, [])
 
   useEffect(() => {
-    fetchTeachers()
+    void fetchTeachers()
+  }, [fetchTeachers])
+
+  const refetch = useCallback(async () => {
+    teachersCache.clear()
+    await fetchTeachers(true)
   }, [fetchTeachers])
 
   return {
     teachers,
     loading,
     error,
-    refetch: fetchTeachers
+    refetch
   }
 }
 

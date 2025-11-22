@@ -3,12 +3,11 @@
 import * as React from "react"
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
-import { Bot, MessageCircle, X, Send, User, GripVertical } from "lucide-react"
+import { Bot, X, Send, User, GripVertical } from "lucide-react"
+import { useChatAssistant } from "./ChatAssistantProvider"
 
 interface ChatAssistantCardProps {
   isExpanded: boolean
@@ -25,21 +24,33 @@ interface Message {
 }
 
 function ChatAssistant({ isExpanded, onToggle, width, onWidthChange }: ChatAssistantCardProps) {
+  const { generateReportFromQuery } = useChatAssistant()
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! I\'m your AI assistant. How can I help you with your students today?',
+      content: 'Hello! I\'m your AI assistant. How can I help you with your students today? I can help you generate reports, analyze data, and answer questions.',
       timestamp: new Date()
     }
   ])
   const [inputValue, setInputValue] = useState('')
   const [isResizing, setIsResizing] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
   const chatRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
+  // Check if query is report-related
+  const isReportQuery = (query: string): boolean => {
+    const lowerQuery = query.toLowerCase()
+    const reportKeywords = [
+      'report', 'iep', 'insurance', 'claim', 'progress', 'session', 
+      'generate', 'create', 'build', 'show', 'total', 'detailed'
+    ]
+    return reportKeywords.some(keyword => lowerQuery.includes(keyword))
+  }
+
   const handleSendMessage = () => {
-    if (!inputValue.trim()) return
+    if (!inputValue.trim() || isProcessing) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -49,18 +60,60 @@ function ChatAssistant({ isExpanded, onToggle, width, onWidthChange }: ChatAssis
     }
 
     setMessages(prev => [...prev, userMessage])
+    const query = inputValue.trim()
     setInputValue('')
+    setIsProcessing(true)
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'I understand you\'re asking about: "' + inputValue + '". Let me help you with that!',
-        timestamp: new Date()
+    // Check if this is a report query
+    if (isReportQuery(query)) {
+      // Generate report using the registered generator
+      const reportResult = generateReportFromQuery(query)
+      
+      if (reportResult) {
+        // Dispatch custom event to update ReportingTab
+        window.dispatchEvent(new CustomEvent('reportGenerated', {
+          detail: {
+            title: reportResult.title,
+            content: reportResult.content,
+            query: query
+          }
+        }))
+        
+        setTimeout(() => {
+          const aiMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: `I've generated a ${reportResult.title} based on your request. The report has been displayed in the Reporting tab below. You can export it as Word or PDF using the export buttons.`,
+            timestamp: new Date()
+          }
+          setMessages(prev => [...prev, aiMessage])
+          setIsProcessing(false)
+        }, 500)
+      } else {
+        setTimeout(() => {
+          const aiMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: 'I understand you\'re asking about: "' + query + '". To generate reports, please navigate to the Reporting tab and use the report assistant there, or I can help you with other questions about your students.',
+            timestamp: new Date()
+          }
+          setMessages(prev => [...prev, aiMessage])
+          setIsProcessing(false)
+        }, 1000)
       }
-      setMessages(prev => [...prev, aiMessage])
-    }, 1000)
+    } else {
+      // Regular AI assistant response
+      setTimeout(() => {
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: 'I understand you\'re asking about: "' + query + '". Let me help you with that!',
+          timestamp: new Date()
+        }
+        setMessages(prev => [...prev, aiMessage])
+        setIsProcessing(false)
+      }, 1000)
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -79,8 +132,7 @@ function ChatAssistant({ isExpanded, onToggle, width, onWidthChange }: ChatAssis
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing || !chatRef.current) return
 
-      const rect = chatRef.current.getBoundingClientRect()
-      const newWidth = window.innerWidth - e.clientX - 16 // 16px for right padding
+      const newWidth = window.innerWidth - e.clientX // No right padding since it's flush with edge
       const minWidth = 280 // Smaller minimum for mobile
       // Responsive max width based on screen size
       const maxWidth = Math.min(
@@ -113,29 +165,19 @@ function ChatAssistant({ isExpanded, onToggle, width, onWidthChange }: ChatAssis
 
   return (
     <>
-      {/* Floating Button - Always visible when collapsed */}
-      {!isExpanded && (
-        <Button
-          onClick={onToggle}
-          className="fixed top-4 right-2 z-50 h-12 w-12 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
-        >
-          <MessageCircle className="h-6 w-6 text-white" />
-        </Button>
-      )}
-
-      {/* Expandable Chat Card */}
+      {/* Expandable Chat Card - Side Panel - Starts below top navbar */}
       {isExpanded && (
         <div 
           ref={chatRef}
-          className="fixed top-2 right-2 z-50 transition-all duration-200 ease-in-out"
+          className="fixed top-16 right-0 z-40 transition-all duration-200 ease-in-out border-l border-sidebar-border bg-sidebar"
           style={{ 
             width: `${width}px`, 
-            height: 'calc(100vh - 1rem)'
+            height: 'calc(100vh - 4rem)'
           }}
         >
           {/* Resize handle - hidden on mobile */}
           <div
-            className="absolute left-0 top-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors hidden lg:block"
+            className="absolute left-0 top-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors hidden lg:block z-10"
             onMouseDown={handleMouseDown}
           >
             <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
@@ -143,30 +185,28 @@ function ChatAssistant({ isExpanded, onToggle, width, onWidthChange }: ChatAssis
             </div>
           </div>
 
-          {/* Chat Card */}
-          <Card className="h-full flex flex-col bg-background border border-border shadow-xl rounded-lg">
-            {/* Header */}
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          {/* Chat Panel - Header matches top navbar style */}
+          <div className="h-full flex flex-col bg-sidebar text-sidebar-foreground">
+            {/* Header - Matches top navbar style, with close button */}
+            <div className="flex flex-row items-center justify-between h-16 px-6 border-b border-sidebar-border shrink-0">
               <div className="flex items-center space-x-2">
                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-pink-500 to-purple-600">
                   <Bot className="h-4 w-4 text-white" />
                 </div>
-                <CardTitle className="text-lg">AI Assistant</CardTitle>
+                <h2 className="text-lg font-semibold text-sidebar-foreground">AI Assistant</h2>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onToggle}
-                className="h-8 w-8 p-0"
+                className="h-8 w-8 p-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               >
                 <X className="h-4 w-4" />
               </Button>
-            </CardHeader>
-
-            <Separator />
+            </div>
 
             {/* Messages area */}
-            <CardContent className="flex-1 p-0 overflow-hidden">
+            <div className="flex-1 overflow-hidden bg-sidebar">
               <ScrollArea ref={scrollAreaRef} className="h-full p-4">
                 <div className="space-y-4">
                   {messages.map((message) => (
@@ -205,10 +245,10 @@ function ChatAssistant({ isExpanded, onToggle, width, onWidthChange }: ChatAssis
                   ))}
                 </div>
               </ScrollArea>
-            </CardContent>
+            </div>
 
             {/* Input area */}
-            <div className="p-4 border-t border-border">
+            <div className="p-4 border-t border-sidebar-border bg-sidebar">
               <div className="flex space-x-2">
                 <Input
                   value={inputValue}
@@ -216,11 +256,11 @@ function ChatAssistant({ isExpanded, onToggle, width, onWidthChange }: ChatAssis
                   onKeyPress={handleKeyPress}
                   placeholder="Ask me anything about your students..."
                   className="flex-1"
-                  disabled={messages[messages.length - 1]?.role === 'user'}
+                  disabled={isProcessing}
                 />
                 <Button
                   onClick={handleSendMessage}
-                  disabled={!inputValue.trim() || messages[messages.length - 1]?.role === 'user'}
+                  disabled={!inputValue.trim() || isProcessing}
                   size="sm"
                   className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
                 >
@@ -228,7 +268,7 @@ function ChatAssistant({ isExpanded, onToggle, width, onWidthChange }: ChatAssis
                 </Button>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       )}
     </>

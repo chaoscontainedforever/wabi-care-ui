@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -25,18 +24,38 @@ interface StudentInfoData {
 }
 
 interface StudentInfoStepProps {
-  data: StudentInfoData
-  onUpdate: (data: StudentInfoData) => void
+  data: StudentInfoData | undefined
+  onUpdate?: (update: StudentInfoData) => void
+  onChange?: (update: StudentInfoData) => void
 }
 
-export default function StudentInfoStep({ data, onUpdate }: StudentInfoStepProps) {
+export default function StudentInfoStep({ data, onUpdate, onChange }: StudentInfoStepProps) {
+  // Initialize with default values if data is undefined
+  const formData: StudentInfoData = data || {
+    firstName: '',
+    lastName: '',
+    dateOfBirth: '',
+    grade: '',
+    school: '',
+    studentId: '',
+    parentName: '',
+    parentEmail: '',
+    parentPhone: ''
+  }
+
   const [isProcessingIEP, setIsProcessingIEP] = useState(false)
   const [iepProcessingStatus, setIepProcessingStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle')
   const [iepExtractedData, setIepExtractedData] = useState<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const emitUpdate = (update: Partial<StudentInfoData> | StudentInfoData) => {
+    const nextData = { ...formData, ...update } as StudentInfoData
+    onUpdate?.(nextData)
+    onChange?.(nextData)
+  }
+
   const updateField = (field: keyof StudentInfoData, value: string | File) => {
-    onUpdate({ ...data, [field]: value })
+    emitUpdate({ [field]: value })
   }
 
   const handleIEPUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,13 +78,13 @@ export default function StudentInfoStep({ data, onUpdate }: StudentInfoStepProps
       
       // Mock extracted data
       const mockExtractedData = {
-        studentName: `${data.firstName || 'John'} ${data.lastName || 'Doe'}`,
-        dateOfBirth: data.dateOfBirth || '2015-12-31',
-        grade: data.grade || '3rd Grade',
-        school: data.school || 'Elementary School',
-        parentName: data.parentName || 'Jane Doe',
-        parentEmail: data.parentEmail || 'jane.doe@email.com',
-        parentPhone: data.parentPhone || '(555) 123-4567',
+        studentName: `${formData.firstName || 'John'} ${formData.lastName || 'Doe'}`,
+        dateOfBirth: formData.dateOfBirth || '2015-12-31',
+        grade: formData.grade || '3rd Grade',
+        school: formData.school || 'Elementary School',
+        parentName: formData.parentName || 'Jane Doe',
+        parentEmail: formData.parentEmail || 'jane.doe@email.com',
+        parentPhone: formData.parentPhone || '(555) 123-4567',
         goals: [
           {
             title: 'Reading Comprehension',
@@ -91,8 +110,7 @@ export default function StudentInfoStep({ data, onUpdate }: StudentInfoStepProps
       setIepProcessingStatus('success')
       
       // Auto-populate form fields with extracted data
-      onUpdate({
-        ...data,
+      emitUpdate({
         iepDocument: file,
         iepData: mockExtractedData,
         firstName: mockExtractedData.studentName.split(' ')[0],
@@ -120,14 +138,11 @@ export default function StudentInfoStep({ data, onUpdate }: StudentInfoStepProps
   return (
     <div className="space-y-6">
       {/* IEP Document Upload Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            IEP Document Upload
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          <h3 className="text-lg font-semibold text-foreground">IEP Document Upload</h3>
+        </div>
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
             <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <div className="space-y-2">
@@ -176,21 +191,17 @@ export default function StudentInfoStep({ data, onUpdate }: StudentInfoStepProps
               </AlertDescription>
             </Alert>
           )}
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Student Information Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Student Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <div className="border-t pt-6 space-y-6">
+        <h3 className="text-lg font-semibold text-foreground">Student Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name *</Label>
               <Input
                 id="firstName"
-                value={data.firstName}
+                value={formData.firstName}
                 onChange={(e) => updateField('firstName', e.target.value)}
                 placeholder="Enter first name"
               />
@@ -199,7 +210,7 @@ export default function StudentInfoStep({ data, onUpdate }: StudentInfoStepProps
               <Label htmlFor="lastName">Last Name *</Label>
               <Input
                 id="lastName"
-                value={data.lastName}
+                value={formData.lastName}
                 onChange={(e) => updateField('lastName', e.target.value)}
                 placeholder="Enter last name"
               />
@@ -209,13 +220,13 @@ export default function StudentInfoStep({ data, onUpdate }: StudentInfoStepProps
               <Input
                 id="dateOfBirth"
                 type="date"
-                value={data.dateOfBirth}
+                value={formData.dateOfBirth}
                 onChange={(e) => updateField('dateOfBirth', e.target.value)}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="grade">Grade *</Label>
-              <Select value={data.grade} onValueChange={(value) => updateField('grade', value)}>
+              <Select value={formData.grade} onValueChange={(value) => updateField('grade', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select grade" />
                 </SelectTrigger>
@@ -241,7 +252,7 @@ export default function StudentInfoStep({ data, onUpdate }: StudentInfoStepProps
               <Label htmlFor="school">School *</Label>
               <Input
                 id="school"
-                value={data.school}
+                value={formData.school}
                 onChange={(e) => updateField('school', e.target.value)}
                 placeholder="Enter school name"
               />
@@ -250,27 +261,23 @@ export default function StudentInfoStep({ data, onUpdate }: StudentInfoStepProps
               <Label htmlFor="studentId">Student ID</Label>
               <Input
                 id="studentId"
-                value={data.studentId}
+                value={formData.studentId}
                 onChange={(e) => updateField('studentId', e.target.value)}
                 placeholder="Enter student ID"
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Parent/Guardian Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Parent/Guardian Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <div className="border-t pt-6 space-y-6">
+        <h3 className="text-lg font-semibold text-foreground">Parent/Guardian Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="parentName">Parent/Guardian Name *</Label>
               <Input
                 id="parentName"
-                value={data.parentName}
+                value={formData.parentName}
                 onChange={(e) => updateField('parentName', e.target.value)}
                 placeholder="Enter parent/guardian name"
               />
@@ -280,7 +287,7 @@ export default function StudentInfoStep({ data, onUpdate }: StudentInfoStepProps
               <Input
                 id="parentEmail"
                 type="email"
-                value={data.parentEmail}
+                value={formData.parentEmail}
                 onChange={(e) => updateField('parentEmail', e.target.value)}
                 placeholder="Enter email address"
               />
@@ -289,25 +296,21 @@ export default function StudentInfoStep({ data, onUpdate }: StudentInfoStepProps
               <Label htmlFor="parentPhone">Phone Number *</Label>
               <Input
                 id="parentPhone"
-                value={data.parentPhone}
+                value={formData.parentPhone}
                 onChange={(e) => updateField('parentPhone', e.target.value)}
                 placeholder="Enter phone number"
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Extracted IEP Data Preview */}
       {iepExtractedData && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              Extracted IEP Data Preview
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <div className="border-t pt-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            <h3 className="text-lg font-semibold text-foreground">Extracted IEP Data Preview</h3>
+          </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <h4 className="font-medium text-sm text-gray-700 mb-2">Goals Found:</h4>
@@ -330,8 +333,7 @@ export default function StudentInfoStep({ data, onUpdate }: StudentInfoStepProps
                 </ul>
               </div>
             </div>
-          </CardContent>
-        </Card>
+        </div>
       )}
     </div>
   )
